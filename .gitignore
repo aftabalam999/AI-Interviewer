@@ -1,0 +1,18 @@
+# Global ignores
+node_modules/
+.env
+logs/
+dist/
+build/
+.DS_Store
+Thumbs.db
+*.log
+
+# Frontend
+/Frontend/node_modules
+/Frontend/.env
+
+# backend
+/backend/node_modules
+/backend/.env
+
