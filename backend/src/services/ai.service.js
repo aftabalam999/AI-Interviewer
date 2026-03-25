@@ -1,7 +1,6 @@
-const Groq = require('groq-sdk');
+const groq = require('../config/groq');
 const { extractContextViaRAG } = require('./rag.service');
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const { optimizeQuery } = require('./optimizer.service');
 
 /**
  * Generate interview questions using Groq LLM (llama-3.3-70b-versatile)
@@ -189,4 +188,68 @@ Respond with valid JSON exacty in this format:
   return JSON.parse(content || '{}');
 };
 
-module.exports = { generateInterviewQuestions, evaluateAnswer, generateOverallFeedback };
+/**
+ * Parse Resume & Job Description into structured JSON
+ * @param {string} resumeText - Raw extracted resume text
+ * @param {string} jdText     - Job description text
+ * @returns {Promise<Object>} Structured { resume, jobDescription } object
+ */
+const parseResumeAndJD = async (resumeText, jdText) => {
+  const systemPrompt = `You are an expert resume and job description parser.
+
+Extract structured data in strict JSON format.
+
+From Resume:
+- name
+- skills (array)
+- experience (array of objects: role, company, duration, tech)
+- projects (array: title, tech stack, description)
+- education
+
+From Job Description:
+- role
+- required_skills (array)
+- preferred_skills (array)
+- responsibilities (array)
+
+Rules:
+- Do not hallucinate
+- If missing, return empty array or null
+- Keep output strictly JSON`;
+
+  const userPrompt = `Input:
+RESUME:
+${resumeText || 'Not provided'}
+
+JOB_DESCRIPTION:
+${jdText || 'Not provided'}`;
+
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0.2,
+    max_tokens: 2048,
+    response_format: { type: 'json_object' },
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error('No response from AI parser.');
+
+  try {
+    return JSON.parse(content);
+  } catch {
+    throw new Error('AI parser returned invalid JSON.');
+  }
+};
+
+module.exports = {
+  generateInterviewQuestions,
+  evaluateAnswer,
+  generateOverallFeedback,
+  parseResumeAndJD,
+  optimizeQuery,
+};
+

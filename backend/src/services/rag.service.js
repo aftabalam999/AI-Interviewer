@@ -1,104 +1,142 @@
-const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
-const { OpenAIEmbeddings } = require("@langchain/openai");
+const { OpenAIEmbeddings } = require('@langchain/openai');
+const { chunkResumeAndJD } = require('./chunking.service');
+const { normalizeChunks } = require('../utils/normalizer');
+const { optimizeQuery } = require('./optimizer.service');
 
-// Math util for cosine similarity in pure Node.js
+// ─────────────────────────────────────────────────────────────────────────────
+//  Cosine Similarity (pure Node.js – no native FAISS needed on Windows)
+// ─────────────────────────────────────────────────────────────────────────────
 function cosineSimilarity(vecA, vecB) {
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
+  let dot = 0, normA = 0, normB = 0;
   for (let i = 0; i < vecA.length; i++) {
-    dotProduct += vecA[i] * vecB[i];
+    dot   += vecA[i] * vecB[i];
     normA += vecA[i] * vecA[i];
     normB += vecB[i] * vecB[i];
   }
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-/**
- * 1. Chunking Strategy
- * --------------------
- * We use a RecursiveCharacterTextSplitter to intelligently divide the 
- * unstructured text (Resume + Job Description). 
- * 
- * - chunkSize: 500 chars
- * - chunkOverlap: 50 chars
- */
-const splitTextIntoChunks = async (resumeText, jobDescriptionText) => {
-  const splitter = new RecursiveCharacterTextSplitter({
-    chunkSize: 500,
-    chunkOverlap: 50,
-  });
-
-  const combinedText = `--- ROLE CONTEXT (Job Description) ---\n${jobDescriptionText}\n--- CANDIDATE CONTEXT (Resume) ---\n${resumeText}`;
-  const rawDocs = [{ pageContent: combinedText, metadata: { source: "context" } }];
-  
-  return await splitter.splitDocuments(rawDocs);
+// ─────────────────────────────────────────────────────────────────────────────
+//  Step 1 – Semantic Chunking + Normalization
+//  1a. chunkResumeAndJD  → metadata-tagged chunks
+//  1b. normalizeChunks   → clean content ready for embedding
+// ─────────────────────────────────────────────────────────────────────────────
+const buildSemanticChunks = (resumeText, jdText) => {
+  const raw = chunkResumeAndJD(resumeText || '', jdText || '');
+  return normalizeChunks(raw); // ← clean before embedding
 };
 
-/**
- * 2. Embedding Pipeline & DB Storage (Custom Local Vector DB)
- * ----------------------------------
- * Maps chunks into dense vectors using 'text-embedding-3-small'.
- * Because native FAISS bindings crash on Windows, we simulate it via an in-memory cosine similarity store.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+//  Step 2 – Embedding Pipeline (in-memory vector store)
+//  Each chunk is embedded preserving its metadata.
+// ─────────────────────────────────────────────────────────────────────────────
 const createAndStoreEmbeddings = async (chunks) => {
   if (!process.env.OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEY is missing. Required for embedding generation.");
+    throw new Error('OPENAI_API_KEY is missing. Required for embedding generation.');
   }
 
-  const embeddingsClient = new OpenAIEmbeddings({ modelName: "text-embedding-3-small" });
-  const chunkTexts = chunks.map(c => c.pageContent);
-  const chunkVectors = await embeddingsClient.embedDocuments(chunkTexts);
+  const embeddingsClient = new OpenAIEmbeddings({ modelName: 'text-embedding-3-small' });
+  const chunkTexts       = chunks.map((c) => c.content);
+  const chunkVectors     = await embeddingsClient.embedDocuments(chunkTexts);
 
-  // Return the built in-memory local DB structure
+  // Return in-memory store: chunks retain full { content, metadata }
   return { embeddingsClient, chunks, chunkVectors };
 };
 
-/**
- * 3. Retrieval Logic
- * -------------------
- * Executes a semantic search against our localized JS Vectors
- * to pull the top 5 most relevant chunks.
- */
-const retrieveRelevantContext = async (localVectorStore) => {
-  const query = "Core technical skills, exact role responsibilities, and key candidate achievements.";
-  
-  // Embed the query
-  const queryVector = await localVectorStore.embeddingsClient.embedQuery(query);
-  
-  // Rank chunks by cosine similarity
-  const rankedChunks = localVectorStore.chunks.map((doc, idx) => {
-    const similarity = cosineSimilarity(queryVector, localVectorStore.chunkVectors[idx]);
-    return { content: doc.pageContent, similarity };
-  });
+// ─────────────────────────────────────────────────────────────────────────────
+//  Step 3 – Retrieval with metadata-aware ranking
+//
+//  Strategy:
+//   • Run TWO queries: one skill/tech-focused, one responsibility-focused
+//   • Boost chunks from high-priority sections (skills, experience, responsibility)
+//   • De-duplicate and return top K
+// ─────────────────────────────────────────────────────────────────────────────
 
-  // Sort Descending and slice top 5
-  rankedChunks.sort((a, b) => b.similarity - a.similarity);
-  const topResults = rankedChunks.slice(0, 5);
-  
-  return topResults.map(res => res.content).join('\n---\n');
+// Section priority weights for ranking boost
+const SECTION_BOOST = {
+  skills:                 1.25,
+  experience:             1.20,
+  responsibility:         1.20,
+  requirements:           1.15,
+  project:                1.10,
+  required_skills:        1.15,
+  experience_requirement: 1.10,
+  preferred_skills:       1.05,
+  summary:                1.00,
+  education:              0.90,
+  general:                0.85,
+  overview:               0.85,
+  benefits:               0.70,
+  interests:              0.60,
+  languages:              0.70,
+  certification:          0.90,
+  publication:            0.80,
 };
 
+const RETRIEVAL_GOALS = [
+  'Extract exact technical skills, programming languages, and frameworks used in candidate projects.',
+  'Identify core role responsibilities, required qualifications, and daily tasks for this job.',
+];
+const TOP_K = 6;
 
-/**
- * Main RAG Pipeline Orchestrator
- */
+const retrieveRelevantContext = async (vectorStore) => {
+  const allScores = new Map(); // chunkIndex → best boosted score
+
+  // Optimize our retrieval goals using the LLM optimizer to get context-rich queries
+  const optimizedQueries = await Promise.all(
+    RETRIEVAL_GOALS.map((q) => optimizeQuery(q))
+  );
+
+  for (const query of optimizedQueries) {
+    const queryVector = await vectorStore.embeddingsClient.embedQuery(query);
+
+    vectorStore.chunks.forEach((chunk, idx) => {
+      const rawSim   = cosineSimilarity(queryVector, vectorStore.chunkVectors[idx]);
+      const boost    = SECTION_BOOST[chunk.metadata?.section] ?? 0.85;
+      const boosted  = rawSim * boost;
+      const existing = allScores.get(idx) ?? -Infinity;
+      if (boosted > existing) allScores.set(idx, boosted);
+    });
+  }
+
+  // Sort by score descending → take top K
+  const sorted = [...allScores.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, TOP_K);
+
+  // Format retrieved context with section label for the LLM
+  return sorted
+    .map(([idx]) => {
+      const chunk = vectorStore.chunks[idx];
+      const label = `[${chunk.metadata.type.toUpperCase()} › ${chunk.metadata.section}]`;
+      return `${label}\n${chunk.content}`;
+    })
+    .join('\n\n---\n\n');
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Main RAG Pipeline Orchestrator
+// ─────────────────────────────────────────────────────────────────────────────
 const extractContextViaRAG = async (resumeText, jobDescription) => {
   try {
-    // Step 1: Chunk
-    const chunks = await splitTextIntoChunks(resumeText || "No resume provided.", jobDescription);
-    
-    // Step 2: Embed & Store
+    // Step 1: Semantic chunk with metadata
+    const chunks = buildSemanticChunks(resumeText, jobDescription);
+
+    if (chunks.length === 0) {
+      return `Fallback Context:\nJD: ${(jobDescription || '').slice(0, 1000)}\nResume: ${(resumeText || '').slice(0, 1000)}`;
+    }
+
+    // Step 2: Embed & store
     const vectorStore = await createAndStoreEmbeddings(chunks);
-    
-    // Step 3: Retrieve
+
+    // Step 3: Retrieve with boosted semantic search
     const retrievedContext = await retrieveRelevantContext(vectorStore);
-    
+
     return retrievedContext;
   } catch (error) {
-    console.error("RAG Pipeline Error:", error);
-    // Graceful fallback: if API key missing or store fails, heavily truncate standard text
-    return `Fallback Context:\nJD: ${jobDescription.slice(0, 1000)}\nResume: ${(resumeText || '').slice(0, 1000)}`;
+    console.error('RAG Pipeline Error:', error);
+    // Graceful fallback if OpenAI key is missing or embedding fails
+    return `Fallback Context:\nJD: ${(jobDescription || '').slice(0, 1000)}\nResume: ${(resumeText || '').slice(0, 1000)}`;
   }
 };
 

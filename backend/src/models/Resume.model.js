@@ -36,6 +36,14 @@ const resumeSchema = new mongoose.Schema(
       type: String, // Raw text extracted from PDF/doc
       default: null,
     },
+    parsedData: {
+      type: mongoose.Schema.Types.Mixed, // Structured JSON from AI parser
+      default: null,
+    },
+    isParsed: {
+      type: Boolean,
+      default: false,
+    },
     isDefault: {
       type: Boolean,
       default: false,
