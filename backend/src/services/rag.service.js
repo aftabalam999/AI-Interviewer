@@ -72,7 +72,6 @@ const SECTION_BOOST = {
   certification:          0.90,
   publication:            0.80,
 };
-
 const RETRIEVAL_GOALS = [
   'Extract exact technical skills, programming languages, and frameworks used in candidate projects.',
   'Identify core role responsibilities, required qualifications, and daily tasks for this job.',
@@ -140,4 +139,39 @@ const extractContextViaRAG = async (resumeText, jobDescription) => {
   }
 };
 
-module.exports = { extractContextViaRAG };
+/**
+ * Targetted Context Retrieval for a specific topic
+ * 1. Query Rewrite (Topic -> Precise search query)
+ * 2. Embed & Retrieve
+ */
+const retrieveContextForTopic = async (vectorStore, topic) => {
+  if (!topic) return '';
+
+  // Step 1: Query Rewrite
+  const optimizedQuery = await optimizeQuery(topic);
+
+  // Step 2 & 3: Embed & Retrieve
+  const queryVector = await vectorStore.embeddingsClient.embedQuery(optimizedQuery);
+
+  const scores = vectorStore.chunks.map((chunk, idx) => {
+    const rawSim = cosineSimilarity(queryVector, vectorStore.chunkVectors[idx]);
+    const boost = SECTION_BOOST[chunk.metadata?.section] ?? 1.0;
+    return { idx, score: rawSim * boost };
+  });
+
+  const topChunks = scores
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5); // Retrieve top 5 as requested
+
+  // Step 4: Format context
+  return topChunks
+    .map(({ idx }) => {
+      const chunk = vectorStore.chunks[idx];
+      const label = `[${chunk.metadata.type.toUpperCase()} › ${chunk.metadata.section}]`;
+      return `${label}\n${chunk.content}`;
+    })
+    .join('\n\n---\n\n');
+};
+
+module.exports = { extractContextViaRAG, buildSemanticChunks, createAndStoreEmbeddings, retrieveContextForTopic };
+
