@@ -34,11 +34,27 @@ app.use(helmet());
 
 // ─── CORS ─────────────────────────────────────────────────────────
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    const allowed = process.env.CLIENT_URL || 'http://localhost:5173';
+    // Let local dev and exact matches through instantly
+    if (!origin || origin === allowed) return callback(null, true);
+    
+    // Normalize both for comparison (remove trailing slashes)
+    const normalizedOrigin  = origin.replace(/\/$/, '');
+    const normalizedAllowed = allowed.replace(/\/$/, '');
+
+    if (normalizedOrigin === normalizedAllowed) {
+      callback(null, true);
+    } else {
+      console.warn(`[CORS] Rejected origin: ${origin} (Expected: ${allowed})`);
+      callback(null, false); // Don't throw error, just deny CORS
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
 }));
+
 
 // ─── Rate Limiting ─────────────────────────────────────────────────
 app.use('/api/', rateLimit({
