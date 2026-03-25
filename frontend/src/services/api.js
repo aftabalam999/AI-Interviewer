@@ -22,6 +22,8 @@ export const resumeAPI = {
   getAll: () => api.get('/resumes'),
   delete: (id) => api.delete(`/resumes/${id}`),
   setDefault: (id) => api.patch(`/resumes/${id}/default`),
+  parse: (id, jobDescription = '') =>
+    api.post(`/resumes/${id}/parse`, { jobDescription }),
 };
 
 // ── Interview ──────────────────────────────────────────────────────
