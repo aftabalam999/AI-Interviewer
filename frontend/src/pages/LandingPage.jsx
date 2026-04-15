@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BrainCircuit, Sparkles, FileText, BarChart3, ArrowRight, CheckCircle } from 'lucide-react';
+import { BrainCircuit, Sparkles, FileText, BarChart3, ArrowRight, CheckCircle, Briefcase } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 
 const FEATURES = [
@@ -44,6 +44,18 @@ export default function LandingPage() {
             </div>
             <span className="font-display font-bold text-lg gradient-text">InterviewAI</span>
           </div>
+
+          {/* Desktop Nav Links */}
+          <div className="hidden md:flex items-center gap-8">
+            <Link to="/jobs" className="text-sm font-medium text-slate-400 hover:text-white transition-colors flex items-center gap-2">
+              <Briefcase className="w-4 h-4" />
+              Jobs
+              <span className="text-[10px] bg-brand-600/20 text-brand-400 px-1.5 py-0.5 rounded border border-brand-500/20 font-bold uppercase tracking-tight">
+                Soon
+              </span>
+            </Link>
+          </div>
+
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <Link to="/dashboard" className="btn-primary">Go to Dashboard</Link>

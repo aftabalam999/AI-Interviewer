@@ -29,6 +29,7 @@ import SessionResultPage   from '@/pages/interview/SessionResultPage';
 import SessionHistoryPage  from '@/pages/session/SessionHistoryPage';
 import ResumesPage         from '@/pages/resume/ResumesPage';
 import ProfilePage         from '@/pages/profile/ProfilePage';
+import Jobs                from '@/pages/Jobs';
 
 // ─── Route Guards ─────────────────────────────────────────────────
 
@@ -85,6 +86,7 @@ export default function App() {
         <Route path="/sessions/:id/results"         element={<SessionResultPage />} />
         <Route path="/sessions"                     element={<SessionHistoryPage />} />
         <Route path="/resumes"                      element={<ResumesPage />} />
+        <Route path="/jobs"                         element={<Jobs />} />
         <Route path="/profile"                      element={<ProfilePage />} />
       </Route>
 
