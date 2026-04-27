@@ -43,3 +43,10 @@ export const sessionAPI = {
   getAll: (params) => api.get('/sessions', { params }),
   getById: (id) => api.get(`/sessions/${id}`),
 };
+
+// ── Jobs ───────────────────────────────────────────────────────────
+export const jobsAPI = {
+  search: (params) => api.get('/jobs/search', { params }),
+  getById: (id) => api.get(`/jobs/${id}`),
+  getCategories: () => api.get('/jobs/categories'),
+};

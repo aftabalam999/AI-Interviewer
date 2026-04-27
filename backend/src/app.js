@@ -8,11 +8,12 @@
 
 require('express-async-errors');
 
-const express = require('express');
-const cors    = require('cors');
-const helmet  = require('helmet');
-const morgan  = require('morgan');
-const rateLimit = require('express-rate-limit');
+const express    = require('express');
+const cors       = require('cors');
+const helmet     = require('helmet');
+const morgan     = require('morgan');
+const rateLimit  = require('express-rate-limit');
+const compression = require('compression');
 
 const connectDB      = require('./config/db');
 const errorHandler   = require('./middleware/errorHandler');
@@ -23,6 +24,7 @@ const userRoutes      = require('./routes/user.routes');
 const resumeRoutes    = require('./routes/resume.routes');
 const interviewRoutes = require('./routes/interview.routes');
 const sessionRoutes   = require('./routes/session.routes');
+const jobsRoutes      = require('./routes/jobs.routes');
 
 const app = express();
 
@@ -31,6 +33,21 @@ connectDB();
 
 // ─── Security Headers ─────────────────────────────────────────────
 app.use(helmet());
+
+// ─── Gzip Compression ─────────────────────────────────────────────
+// Compresses all JSON/text responses above the threshold.
+// Skips already-encoded content (images, pre-gzipped assets).
+app.use(compression({
+  // Only compress responses larger than this (bytes). Default 1KB.
+  threshold: parseInt(process.env.COMPRESSION_THRESHOLD_BYTES, 10) || 1024,
+  // zlib compression level: 1 (fast) – 9 (best). 6 = balanced default.
+  level: parseInt(process.env.COMPRESSION_LEVEL, 10) || 6,
+  filter(req, res) {
+    // Honour the caller's opt-out header
+    if (req.headers['x-no-compression']) return false;
+    return compression.filter(req, res);
+  },
+}));
 
 // ─── CORS ─────────────────────────────────────────────────────────
 app.use(cors({
@@ -85,6 +102,7 @@ app.use('/api/users',      userRoutes);
 app.use('/api/resumes',    resumeRoutes);
 app.use('/api/interviews', interviewRoutes);
 app.use('/api/sessions',   sessionRoutes);
+app.use('/api/jobs',       jobsRoutes);
 
 // ─── 404 Catch-all ────────────────────────────────────────────────
 app.use('*', (req, res) =>
