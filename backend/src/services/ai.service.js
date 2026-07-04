@@ -17,9 +17,14 @@ const generateInterviewQuestions = async ({
   jobTitle,
   jobDescription,
   experienceLevel,
+  numberOfQuestions = 10,
   resumeText = null,
 }) => {
   const optimizedContext = await extractContextViaRAG(resumeText, jobDescription);
+
+  // Distribute questions: ~2/3 technical, ~1/3 behavioral (min 1 each)
+  const technicalCount = Math.max(1, Math.round((numberOfQuestions * 2) / 3));
+  const behavioralCount = Math.max(1, numberOfQuestions - technicalCount);
 
   const systemPrompt = `You are an expert technical interviewer and HR specialist.
 You create precise, challenging, and role-relevant interview questions solely based on the provided context retrieved from RAG chunks.
@@ -37,8 +42,8 @@ Job Title: ${jobTitle}
 Experience Level: ${experienceLevel}
 
 Generate:
-- 10 technical questions
-- 5 behavioral questions
+- ${technicalCount} technical questions
+- ${behavioralCount} behavioral questions
 
 Rules:
 - STRICT GROUNDING: You MUST base every single question ONLY on the provided retrieved chunks above.
@@ -116,7 +121,9 @@ Return structured JSON exactly in this format:
     });
   });
 
-  return allQuestions.map((q, i) => ({ ...q, order: i + 1 }));
+  // Safety slice: ensure we never return more than the requested number of questions
+  const trimmed = allQuestions.slice(0, numberOfQuestions);
+  return trimmed.map((q, i) => ({ ...q, order: i + 1 }));
 };
 
 /**
