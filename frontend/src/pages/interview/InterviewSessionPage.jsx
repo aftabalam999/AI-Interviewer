@@ -112,15 +112,21 @@ export default function InterviewSessionPage() {
       rec.continuous = true;
       rec.interimResults = true;
       rec.onresult = (e) => {
-        let currentTranscript = '';
+        let finalText = '';
         for (let i = e.resultIndex; i < e.results.length; i++) {
-          currentTranscript += e.results[i][0].transcript;
+          if (e.results[i].isFinal) {
+            finalText += e.results[i][0].transcript;
+          }
         }
-        setAnswerText((prev) => {
-          // Prevent repeating the same interim text infinitely
-          if (prev.endsWith(currentTranscript.trim())) return prev;
-          return prev + ' ' + currentTranscript;
-        });
+        // Only append text from results that are marked as final
+        // Interim results are intentionally ignored to prevent word repetition
+        if (finalText) {
+          setAnswerText((prev) => {
+            const trimmedPrev = prev.trimEnd();
+            const separator = trimmedPrev.length > 0 ? ' ' : '';
+            return trimmedPrev + separator + finalText.trim();
+          });
+        }
       };
       rec.onerror = (e) => {
         console.error('Speech recognition error', e.error);
@@ -209,12 +215,16 @@ export default function InterviewSessionPage() {
     setCurrentIdx((i) => i + 1);
     setElapsed(0);
     setStartTime(Date.now());
+    setLiveFeedback('');
+    setIsReceivingFeedback(false);
   };
 
   const handlePrev = () => {
     const prev = interview?.questions?.[currentIdx - 1];
     setAnswerText(savedAnswers[prev?._id]?.answerText || '');
     setCurrentIdx((i) => i - 1);
+    setLiveFeedback('');
+    setIsReceivingFeedback(false);
   };
 
   const handleComplete = async () => {

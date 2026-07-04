@@ -206,7 +206,7 @@ export default function NewInterviewPage() {
               <div>
                 <label className="form-label">Number of Questions: <span className="text-brand-400 font-bold">{numberOfQuestions}</span></label>
                 <input type="range" min="3" max="20" step="1" className="w-full accent-brand-500 mt-2"
-                  {...register('numberOfQuestions')} />
+                  {...register('numberOfQuestions', { valueAsNumber: true })} />
                 <div className="flex justify-between text-xs text-slate-500 mt-1"><span>3</span><span>20</span></div>
               </div>
             </motion.div>
