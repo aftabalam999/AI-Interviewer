@@ -18,10 +18,11 @@
  */
 
 const { Router } = require('express');
-const { query, param, validationResult } = require('express-validator');
+const { query, param, body, validationResult } = require('express-validator');
 const jobsController               = require('../controllers/jobs.controller');
 const jobsCache                    = require('../utils/jobsCache');
 const { circuitBreaker }           = require('../utils/adzunaClient');
+const { protect }                  = require('../middleware/auth.middleware');
 
 const router = Router();
 
@@ -113,7 +114,6 @@ router.get(
   '/search',
   searchValidators,
   validate,
-  requireSearchTerm,
   jobsController.searchJobs
 );
 
@@ -127,6 +127,38 @@ router.get(
   ],
   validate,
   jobsController.getCategories
+);
+
+router.get(
+  '/recommended',
+  protect,
+  jobsController.getRecommendedJobs
+);
+
+router.post(
+  '/generate-questions',
+  protect,
+  [
+    body('jobTitle').trim().notEmpty().withMessage('Job title is required'),
+    body('jobDescription').trim().notEmpty().withMessage('Job description is required'),
+  ],
+  validate,
+  jobsController.generateQuestionsFromDesc
+);
+
+router.get(
+  '/',
+  [
+    query('page').optional().isInt({ min: 1 }).withMessage('Page must be an integer >= 1'),
+    query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+    query('keyword').optional().trim().isString(),
+    query('location').optional().trim().isString(),
+    query('category').optional().trim().isString(),
+    query('contractType').optional().trim().isString(),
+    query('salaryMin').optional().trim().isNumeric().withMessage('salaryMin must be a numeric value'),
+  ],
+  validate,
+  jobsController.getActiveJobsList
 );
 
 /**

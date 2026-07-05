@@ -8,16 +8,24 @@
  *  4. Handle OS-level process signals (SIGTERM, unhandledRejection)
  */
 
-require('dotenv').config();
+require('dotenv').config({ override: true });
+console.log('SERVER APP ID:', process.env.ADZUNA_APP_ID);
+console.log('SERVER APP KEY:', process.env.ADZUNA_APP_KEY);
 
-const app    = require('./app');
+const app = require('./app');
 const logger = require('./config/logger');
 
 const PORT = process.env.PORT || 5000;
 
 // ─── Start HTTP server ─────────────────────────────────────────────
+const { initSyncScheduler } = require('./services/jobSyncScheduler');
+const { initCleanupScheduler } = require('./services/jobCleanupService');
+
 const server = app.listen(PORT, () => {
   logger.info(`🚀 Server running in [${process.env.NODE_ENV}] mode on port ${PORT}`);
+  // Start the background services
+  initSyncScheduler();
+  initCleanupScheduler();
 });
 
 // Initialize WebSocket for real-time AI interviews

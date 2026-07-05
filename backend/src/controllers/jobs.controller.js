@@ -10,6 +10,10 @@
  */
 
 const adzunaService = require('../services/adzuna.service');
+const Resume = require('../models/Resume.model');
+const { matchUserToJobs } = require('../services/jobMatchService');
+const { generateQuestionsDirect } = require('../services/ai.service');
+const jobSearchService = require('../services/jobSearchService');
 const {
   formatSearchResponse,
   formatJobDetail,
@@ -138,4 +142,69 @@ const getCategories = async (req, res) => {
   res.status(200).json(formatCategories(categories));
 };
 
-module.exports = { searchJobs, getJobById, getCategories };
+const getRecommendedJobs = async (req, res) => {
+  const userId = req.user._id;
+
+  // 1. Fetch user's default resume, or fallback to the most recently updated one
+  let resume = await Resume.findOne({ userId, isDefault: true }).lean();
+  if (!resume) {
+    resume = await Resume.findOne({ userId }).sort({ updatedAt: -1 }).lean();
+  }
+
+  if (!resume || !resume.parsedData || !Array.isArray(resume.parsedData.skills)) {
+    return res.status(200).json({
+      success: true,
+      message: 'Please upload and parse your resume to get personalized recommendations.',
+      results: [],
+    });
+  }
+
+  const userSkills = resume.parsedData.skills;
+
+  // 2. Query matching jobs matching >= 60%
+  const recommendedJobs = await matchUserToJobs(userSkills);
+
+  res.status(200).json({
+    success: true,
+    results: recommendedJobs,
+  });
+};
+
+const generateQuestionsFromDesc = async (req, res, next) => {
+  const { jobTitle, jobDescription } = req.body;
+  try {
+    const questions = await generateQuestionsDirect(jobTitle, jobDescription);
+    res.status(200).json({
+      success: true,
+      questions,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getActiveJobsList = async (req, res, next) => {
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 20;
+  const { keyword, location, category, contractType, salaryMin } = req.query;
+
+  try {
+    const data = await jobSearchService.getActiveJobs({
+      page,
+      limit,
+      keyword,
+      location,
+      category,
+      contractType,
+      salaryMin
+    });
+    res.status(200).json({
+      success: true,
+      ...data,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { searchJobs, getJobById, getCategories, getRecommendedJobs, generateQuestionsFromDesc, getActiveJobsList };

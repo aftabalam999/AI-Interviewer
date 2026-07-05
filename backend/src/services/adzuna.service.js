@@ -72,9 +72,11 @@ function buildSearchURL({
     app_id:           ADZUNA_APP_ID,
     app_key:          ADZUNA_APP_KEY,
     results_per_page: results,
-    sort_by:          sortBy,
-    sort_dir:         sortDir,
   });
+
+  if (sortBy === 'date' || sortBy === 'salary') {
+    qs.set('sort_by', sortBy);
+  }
 
   if (what && what !== 'null')      qs.set('what',          what);
   if (where && where !== 'null')     qs.set('where',         where);
