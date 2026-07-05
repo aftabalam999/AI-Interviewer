@@ -16,8 +16,16 @@ const logger = require('./config/logger');
 const PORT = process.env.PORT || 5000;
 
 // ─── Start HTTP server ─────────────────────────────────────────────
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   logger.info(`🚀 Server running in [${process.env.NODE_ENV}] mode on port ${PORT}`);
+  
+  // Initialize automatic job scraper scheduler
+  try {
+    const { initScraperScheduler } = require('./controllers/adminScraper.controller');
+    await initScraperScheduler();
+  } catch (err) {
+    logger.error(`❌ Job Scraper scheduler failure: ${err.message}`);
+  }
 });
 
 // Initialize WebSocket for real-time AI interviews
