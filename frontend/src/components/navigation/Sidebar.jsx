@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import {
   BrainCircuit, LayoutDashboard, MessageSquarePlus,
-  ClipboardList, FileText, History, User, LogOut, X, Briefcase
+  ClipboardList, FileText, History, User, LogOut, X, Briefcase, Sparkles
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { to: '/sessions',    icon: History,            label: 'History' },
   { to: '/resumes',     icon: FileText,           label: 'Resumes' },
   { to: '/jobs',        icon: Briefcase,          label: 'Jobs' },
+  { to: '/jobs/recommended', icon: Sparkles,       label: 'Recommendations' },
   { to: '/profile',     icon: User,               label: 'Profile' },
 ];
 
