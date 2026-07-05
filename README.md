@@ -312,13 +312,13 @@ This project is under the [MIT License](LICENSE).
 
 ## 👨‍💻 Author
 
-**NavGurukul** — AI Project
+**Aftab Alam** — AI Project
 
 ---
 
 <div align="center">
 
-Made with ❤️ using **Groq**, **LangChain**, **React**, and **MongoDB**
+Made with ❤️ using **Groq**, **React**, and **MongoDB**
 
 ⭐ If you find this project helpful, please give it a Star!
 
