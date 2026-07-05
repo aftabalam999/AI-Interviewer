@@ -24,10 +24,23 @@ export function useJobs(params) {
         Object.entries(params).filter(([_, v]) => v !== '' && v !== undefined && v !== null)
       );
       
-      const response = await jobsAPI.search(cleanParams);
+      // Call our enhanced database search API with filters
+      const response = await jobsAPI.getJobs({
+        page: cleanParams.page,
+        keyword: cleanParams.q || undefined,
+        location: cleanParams.where || undefined,
+        salaryMin: cleanParams.salaryMin || undefined,
+        contractType: cleanParams.jobType || undefined
+      });
       
-      // Axios puts the response body in .data
-      return response.data; 
+      // Map our database pagination structure to the frontend's expected properties
+      return {
+        data: response.data.results || [],
+        meta: {
+          totalPages: response.data.totalPages || 1,
+          total: response.data.total || 0
+        }
+      };
     },
 
     // UX: Keep showing the old page's data while the new page is fetching
