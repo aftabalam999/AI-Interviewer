@@ -183,21 +183,11 @@ const generateQuestionsFromDesc = async (req, res, next) => {
   }
 };
 
-const getActiveJobsList = async (req, res, next) => {
-  const page = parseInt(req.query.page, 10) || 1;
-  const limit = parseInt(req.query.limit, 10) || 20;
-  const { keyword, location, category, contractType, salaryMin } = req.query;
+const { getFilteredJobs } = require('../services/postgresJobService');
 
+const getActiveJobsList = async (req, res, next) => {
   try {
-    const data = await jobSearchService.getActiveJobs({
-      page,
-      limit,
-      keyword,
-      location,
-      category,
-      contractType,
-      salaryMin
-    });
+    const data = await getFilteredJobs(req.query);
     res.status(200).json({
       success: true,
       ...data,

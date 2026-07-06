@@ -20,49 +20,17 @@ const mongoose = require('mongoose');
 const PORT = process.env.PORT || 5000;
 
 // ─── Start HTTP server ─────────────────────────────────────────────
+const { initSyncScheduler } = require('./services/jobSyncScheduler');
+const { initCleanupScheduler } = require('./services/jobCleanupService');
+const { connect: connectRedis } = require('./config/redis');
+
 const server = app.listen(PORT, async () => {
   logger.info(`🚀 Server running in [${process.env.NODE_ENV}] mode on port ${PORT}`);
-  
-  // Initialize automatic job scraper scheduler and other DB-dependent services
-  const initDbDependentServices = async () => {
-    try {
-      // If mongoose is still connecting (readyState === 2), wait for it to connect
-      if (mongoose.connection.readyState === 2) {
-        logger.info('⏳ Waiting for MongoDB connection before initializing schedulers...');
-        await new Promise((resolve) => {
-          mongoose.connection.once('connected', resolve);
-        });
-      }
-      
-      if (mongoose.connection.readyState === 1) {
-        logger.info('⚙️ Initializing schedulers after MongoDB connection...');
-        // Initialize scraper
-        try {
-          const { initScraperScheduler } = require('./controllers/adminScraper.controller');
-          await initScraperScheduler();
-        } catch (err) {
-          logger.error(`❌ Job Scraper scheduler failure: ${err.message}`);
-        }
-        
-        // Initialize other background services
-        try {
-          const { initSyncScheduler } = require('./services/jobSyncScheduler');
-          const { initCleanupScheduler } = require('./services/jobCleanupService');
-          initSyncScheduler();
-          initCleanupScheduler();
-          logger.info('🚀 Background services (Sync & Cleanup) initialized successfully');
-        } catch (err) {
-          logger.error(`❌ Background services initialization failure: ${err.message}`);
-        }
-      } else {
-        logger.warn('⚠️ MongoDB is not connected. Schedulers will not be initialized.');
-      }
-    } catch (err) {
-      logger.error(`❌ Database-dependent services startup failure: ${err.message}`);
-    }
-  };
-  
-  await initDbDependentServices();
+  // Connect to Redis on server startup
+  await connectRedis();
+  // Start the background services
+  initSyncScheduler();
+  initCleanupScheduler();
 });
 
 // Initialize WebSocket for real-time AI interviews

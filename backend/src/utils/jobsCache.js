@@ -107,7 +107,12 @@ async function safeGet(key) {
   if (!redis) return null;
   try {
     const raw = await redis.get(key);
-    return raw ? JSON.parse(raw) : null;
+    if (raw) {
+      console.log(`[Redis] Cache HIT (data served from Redis) for key: ${key}`);
+      return JSON.parse(raw);
+    }
+    console.log(`[Redis] Cache MISS (data served from Database) for key: ${key}`);
+    return null;
   } catch (err) {
     console.warn(`[jobsCache] GET failed for key "${key}":`, err.message);
     return null;
@@ -119,6 +124,7 @@ async function safeSet(key, value, ttlSeconds) {
   if (!redis) return;
   try {
     await redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
+    console.log(`[Redis] Cache Updated for key: ${key} (TTL: ${ttlSeconds}s)`);
   } catch (err) {
     console.warn(`[jobsCache] SET failed for key "${key}":`, err.message);
   }
@@ -129,6 +135,7 @@ async function safeDel(key) {
   if (!redis) return;
   try {
     await redis.del(key);
+    console.log(`[Redis] Cache Key Deleted: ${key}`);
   } catch (err) {
     console.warn(`[jobsCache] DEL failed for key "${key}":`, err.message);
   }

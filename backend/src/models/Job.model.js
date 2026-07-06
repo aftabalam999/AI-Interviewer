@@ -134,4 +134,19 @@ jobSchema.index({ source: 1 });
 jobSchema.index({ isActive: 1 });
 jobSchema.index({ createdAt: -1 });
 
+// Cache invalidation hooks
+const { clearJobsCache } = require('../config/redis');
+const triggerCacheClear = () => {
+  clearJobsCache().catch((err) => {
+    console.error('[JobModel] Cache clearing error:', err.message);
+  });
+};
+
+jobSchema.post('save', triggerCacheClear);
+jobSchema.post('insertMany', triggerCacheClear);
+jobSchema.post('findOneAndUpdate', triggerCacheClear);
+jobSchema.post('updateMany', triggerCacheClear);
+jobSchema.post('deleteOne', triggerCacheClear);
+jobSchema.post('deleteMany', triggerCacheClear);
+
 module.exports = mongoose.model('Job', jobSchema);
