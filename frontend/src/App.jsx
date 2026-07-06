@@ -54,6 +54,12 @@ const AdminSettingsPage    = lazy(() => import('@/pages/admin/AdminSettingsPage'
 const AdminScraperPage     = lazy(() => import('@/pages/admin/AdminScraperPage'));
 const AdminPromptsPage     = lazy(() => import('@/pages/admin/AdminPromptsPage'));
 const AdminLogsPage        = lazy(() => import('@/pages/admin/AdminLogsPage'));
+import SessionResultPage   from '@/pages/interview/SessionResultPage';
+import SessionHistoryPage  from '@/pages/session/SessionHistoryPage';
+import ResumesPage         from '@/pages/resume/ResumesPage';
+import ProfilePage         from '@/pages/profile/ProfilePage';
+import Jobs                from '@/pages/Jobs';
+import RecommendedJobs     from '@/pages/RecommendedJobs';
 
 // ─── Route Guards ─────────────────────────────────────────────────
 
@@ -185,6 +191,7 @@ export default function App() {
         <Route path="/sessions"                     element={<SessionHistoryPage />} />
         <Route path="/resumes"                      element={<ResumesPage />} />
         <Route path="/jobs"                         element={<Jobs />} />
+        <Route path="/jobs/recommended"             element={<RecommendedJobs />} />
         <Route path="/profile"                      element={<ProfilePage />} />
       </Route>
 

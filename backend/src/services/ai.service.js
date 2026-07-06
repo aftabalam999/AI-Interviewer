@@ -560,6 +560,50 @@ const generateTopicQuestions = async ({ resumeText, jobDescription, topic, parse
   });
 };
 
+const generateQuestionsDirect = async (jobTitle, jobDescription) => {
+  if (!jobTitle || !jobDescription) {
+    throw new Error('Job title and job description are required.');
+  }
+
+  const systemPrompt = `You are a professional AI Technical Recruiter.
+Generate 5 targeted, highly role-relevant interview questions (3 technical, 2 behavioral) based specifically on the provided Job Title and Job Description.
+Always respond with a valid JSON object containing a "questions" key pointing to an array of question strings. Format:
+{
+  "questions": [
+    "Question 1...",
+    "Question 2...",
+    "Question 3...",
+    "Question 4...",
+    "Question 5..."
+  ]
+}`;
+
+  const userPrompt = `Job Title: ${jobTitle}
+Job Description:
+${jobDescription}`;
+
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error('Failed to generate questions.');
+
+  try {
+    const parsed = JSON.parse(content);
+    return parsed.questions || [];
+  } catch (err) {
+    logger.error('Failed to parse direct questions JSON from Groq:', err);
+    throw new Error('Failed to parse questions response.');
+  }
+};
+
 module.exports = {
   generateInterviewQuestions,
   evaluateAnswer,
@@ -572,6 +616,7 @@ module.exports = {
   generateFinalEvaluationReport,
   validateGrounding,
   generateTopicQuestions,
+  generateQuestionsDirect,
 };
 
 
