@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['candidate', 'admin'],
+      enum: ['candidate', 'support', 'content_manager', 'admin', 'super_admin'],
       default: 'candidate',
     },
     avatar: {
@@ -36,6 +36,18 @@ const userSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    isBanned: {
+      type: Boolean,
+      default: false,
+    },
+    credits: {
+      type: Number,
+      default: 10,
+    },
+    isPremium: {
+      type: Boolean,
+      default: false,
     },
     lastLogin: {
       type: Date,

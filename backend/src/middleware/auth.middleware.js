@@ -26,6 +26,10 @@ exports.protect = async (req, res, next) => {
       return next(new AppError('Your account has been deactivated. Contact support.', 403));
     }
 
+    if (user.isBanned) {
+      return next(new AppError('Your account has been banned due to violation of terms.', 403));
+    }
+
     if (user.changedPasswordAfter(decoded.iat)) {
       return next(new AppError('Password recently changed. Please log in again.', 401));
     }

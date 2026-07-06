@@ -421,7 +421,7 @@ export default function ResumesPage() {
                           {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </button>
                       )}
-                      <a href={resume.fileUrl} target="_blank" rel="noreferrer"
+                      <a href={`https://docs.google.com/viewer?url=${encodeURIComponent(resume.fileUrl)}`} target="_blank" rel="noreferrer"
                         className="btn-ghost p-2" title="View file">
                         <ExternalLink className="w-4 h-4" />
                       </a>

@@ -1,6 +1,22 @@
 const groq = require('../config/groq');
 const { extractContextViaRAG, buildSemanticChunks, createAndStoreEmbeddings, retrieveContextForTopic } = require('./rag.service');
 const { optimizeQuery } = require('./optimizer.service');
+const SystemPrompt = require('../models/SystemPrompt.model');
+
+const getActivePrompt = async (category, defaultVal) => {
+  try {
+    const promptDoc = await SystemPrompt.findOne({ category });
+    return promptDoc ? promptDoc.content : defaultVal;
+  } catch {
+    return defaultVal;
+  }
+};
+
+const formatPrompt = (template, vars) => {
+  return template.replace(/\$\{(\w+)\}/g, (match, key) => {
+    return vars[key] !== undefined ? vars[key] : match;
+  });
+};
 
 /**
  * Generate interview questions using Groq LLM (llama-3.3-70b-versatile)
@@ -17,9 +33,14 @@ const generateInterviewQuestions = async ({
   jobTitle,
   jobDescription,
   experienceLevel,
+  numberOfQuestions = 10,
   resumeText = null,
 }) => {
   const optimizedContext = await extractContextViaRAG(resumeText, jobDescription);
+
+  // Distribute questions: ~2/3 technical, ~1/3 behavioral (min 1 each)
+  const technicalCount = Math.max(1, Math.round((numberOfQuestions * 2) / 3));
+  const behavioralCount = Math.max(1, numberOfQuestions - technicalCount);
 
   const systemPrompt = `You are an expert technical interviewer and HR specialist.
 You create precise, challenging, and role-relevant interview questions solely based on the provided context retrieved from RAG chunks.
@@ -37,8 +58,8 @@ Job Title: ${jobTitle}
 Experience Level: ${experienceLevel}
 
 Generate:
-- 10 technical questions
-- 5 behavioral questions
+- ${technicalCount} technical questions
+- ${behavioralCount} behavioral questions
 
 Rules:
 - STRICT GROUNDING: You MUST base every single question ONLY on the provided retrieved chunks above.
@@ -116,19 +137,21 @@ Return structured JSON exactly in this format:
     });
   });
 
-  return allQuestions.map((q, i) => ({ ...q, order: i + 1 }));
+  // Safety slice: ensure we never return more than the requested number of questions
+  const trimmed = allQuestions.slice(0, numberOfQuestions);
+  return trimmed.map((q, i) => ({ ...q, order: i + 1 }));
 };
 
 /**
  * Evaluate a candidate's answer using Groq
  */
 const evaluateAnswer = async ({ questionText, answerText, expectedKeywords, jobTitle }) => {
-  const prompt = `Act as an interviewer evaluating a candidate's response.
+  const defaultPrompt = `Act as an interviewer evaluating a candidate's response.
 
-Job Title: ${jobTitle}
-Question: ${questionText}
-Expected Keywords Context: ${expectedKeywords.join(', ')}
-Candidate's Answer: ${answerText || '(No answer provided)'}
+Job Title: \${jobTitle}
+Question: \${questionText}
+Expected Keywords Context: \${expectedKeywordsText}
+Candidate's Answer: \${answerText}
 
 Evaluate the candidate's answer strictly based on:
 1. Correctness
@@ -140,6 +163,14 @@ Return valid JSON exactly in this format:
   "score": <number 1-10>,
   "feedback": "<constructive feedback string explaining the evaluation based on correctness, clarity, and depth>"
 }`;
+
+  const rawTemplate = await getActivePrompt('ats_scorer', defaultPrompt);
+  const prompt      = formatPrompt(rawTemplate, {
+    jobTitle,
+    questionText,
+    expectedKeywordsText: expectedKeywords.join(', '),
+    answerText: answerText || '(No answer provided)',
+  });
 
   const response = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
@@ -161,12 +192,12 @@ const generateOverallFeedback = async ({ jobTitle, answers }) => {
     .map((a, i) => `Q${i + 1}: ${a.questionText}\nScore: ${a.aiScore}/10\nAnswer: ${a.answerText?.slice(0, 200)}`)
     .join('\n\n');
 
-  const prompt = `You are a senior interviewer providing a final interview report.
+  const defaultPrompt = `You are a senior interviewer providing a final interview report.
 Be professional and concise.
 
-Job Title: ${jobTitle}
+Job Title: \${jobTitle}
 Interview Summary:
-${summary}
+\${summary}
 
 Respond with valid JSON exacty in this format:
 {
@@ -175,6 +206,9 @@ Respond with valid JSON exacty in this format:
   "weaknesses": ["<point 1>", "<point 2>"],
   "improvementTips": ["<point 1>", "<point 2>"]
 }`;
+
+  const rawTemplate = await getActivePrompt('feedback_report', defaultPrompt);
+  const prompt      = formatPrompt(rawTemplate, { jobTitle, summary });
 
   const response = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
@@ -195,7 +229,7 @@ Respond with valid JSON exacty in this format:
  * @returns {Promise<Object>} Structured { resume, jobDescription } object
  */
 const parseResumeAndJD = async (resumeText, jdText) => {
-  const systemPrompt = `You are an expert resume and job description parser.
+  const defaultPrompt = `You are an expert resume and job description parser.
 
 Extract structured data in strict JSON format.
 
@@ -216,6 +250,8 @@ Rules:
 - Do not hallucinate
 - If missing, return empty array or null
 - Keep output strictly JSON`;
+
+  const systemPrompt = await getActivePrompt('resume_parser', defaultPrompt);
 
   const userPrompt = `Input:
 RESUME:
@@ -524,6 +560,50 @@ const generateTopicQuestions = async ({ resumeText, jobDescription, topic, parse
   });
 };
 
+const generateQuestionsDirect = async (jobTitle, jobDescription) => {
+  if (!jobTitle || !jobDescription) {
+    throw new Error('Job title and job description are required.');
+  }
+
+  const systemPrompt = `You are a professional AI Technical Recruiter.
+Generate 5 targeted, highly role-relevant interview questions (3 technical, 2 behavioral) based specifically on the provided Job Title and Job Description.
+Always respond with a valid JSON object containing a "questions" key pointing to an array of question strings. Format:
+{
+  "questions": [
+    "Question 1...",
+    "Question 2...",
+    "Question 3...",
+    "Question 4...",
+    "Question 5..."
+  ]
+}`;
+
+  const userPrompt = `Job Title: ${jobTitle}
+Job Description:
+${jobDescription}`;
+
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error('Failed to generate questions.');
+
+  try {
+    const parsed = JSON.parse(content);
+    return parsed.questions || [];
+  } catch (err) {
+    logger.error('Failed to parse direct questions JSON from Groq:', err);
+    throw new Error('Failed to parse questions response.');
+  }
+};
+
 module.exports = {
   generateInterviewQuestions,
   evaluateAnswer,
@@ -536,6 +616,7 @@ module.exports = {
   generateFinalEvaluationReport,
   validateGrounding,
   generateTopicQuestions,
+  generateQuestionsDirect,
 };
 
 
