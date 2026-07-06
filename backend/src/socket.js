@@ -1,6 +1,7 @@
 const { Server } = require("socket.io");
 const Groq = require("groq-sdk");
 require("dotenv").config();
+const SystemPrompt = require('./models/SystemPrompt.model');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -19,7 +20,13 @@ const initSocket = (httpServer) => {
     // Listen for live interview responses
     socket.on("live_answer", async ({ questionText, answerText, expectedKeywords }) => {
       try {
-        const prompt = `Act as an AI interviewer. The candidate just responded to the following question. Provide a brief, conversational, and direct 1-3 sentence follow-up or acknowledgment based ONLY on their answer. Do not return JSON. Just speak as an interviewer naturally.
+        let systemPromptText = `Act as an AI interviewer. The candidate just responded to the following question. Provide a brief, conversational, and direct 1-3 sentence follow-up or acknowledgment based ONLY on their answer. Do not return JSON. Just speak as an interviewer naturally.`;
+        try {
+          const doc = await SystemPrompt.findOne({ category: 'interview' });
+          if (doc) systemPromptText = doc.content;
+        } catch (e) { /* ignore fallback */ }
+
+        const prompt = `${systemPromptText}
 
 Question: ${questionText}
 Expected Keywords: ${expectedKeywords?.join(', ') || 'None'}

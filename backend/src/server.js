@@ -15,6 +15,8 @@ console.log('SERVER APP KEY:', process.env.ADZUNA_APP_KEY);
 const app = require('./app');
 const logger = require('./config/logger');
 
+const mongoose = require('mongoose');
+
 const PORT = process.env.PORT || 5000;
 
 // ─── Start HTTP server ─────────────────────────────────────────────

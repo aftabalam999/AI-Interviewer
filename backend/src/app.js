@@ -25,6 +25,7 @@ const resumeRoutes    = require('./routes/resume.routes');
 const interviewRoutes = require('./routes/interview.routes');
 const sessionRoutes   = require('./routes/session.routes');
 const jobsRoutes      = require('./routes/jobs.routes');
+const adminRoutes     = require('./routes/admin.routes');
 
 const app = express();
 
@@ -103,6 +104,7 @@ app.use('/api/resumes',    resumeRoutes);
 app.use('/api/interviews', interviewRoutes);
 app.use('/api/sessions',   sessionRoutes);
 app.use('/api/jobs',       jobsRoutes);
+app.use('/api/admin',      adminRoutes);
 
 // ─── 404 Catch-all ────────────────────────────────────────────────
 app.use('*', (req, res) =>

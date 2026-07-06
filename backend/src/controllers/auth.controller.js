@@ -3,6 +3,8 @@ const User = require('../models/User.model');
 const AppError = require('../utils/AppError');
 const { sendTokenResponse } = require('../utils/jwt.utils');
 
+const ADMIN_EMAIL = 'aftab@admin.com';
+
 // ─── POST /api/auth/register ───────────────────────────────────────
 exports.register = async (req, res, next) => {
   const errors = validationResult(req);
@@ -17,7 +19,9 @@ exports.register = async (req, res, next) => {
     return next(new AppError('An account with this email already exists.', 409));
   }
 
-  const user = await User.create({ name, email, password });
+  // Assign super_admin role automatically for the designated admin email
+  const role = email.toLowerCase() === ADMIN_EMAIL ? 'super_admin' : 'candidate';
+  const user = await User.create({ name, email, password, role });
   sendTokenResponse(user, 201, res);
 };
 
@@ -37,6 +41,15 @@ exports.login = async (req, res, next) => {
 
   if (!user.isActive) {
     return next(new AppError('Your account has been deactivated.', 403));
+  }
+
+  if (user.isBanned) {
+    return next(new AppError('Your account has been banned due to violation of terms.', 403));
+  }
+
+  // Ensure admin email always has super_admin role (self-healing)
+  if (email.toLowerCase() === ADMIN_EMAIL && user.role !== 'super_admin') {
+    user.role = 'super_admin';
   }
 
   // Update last login

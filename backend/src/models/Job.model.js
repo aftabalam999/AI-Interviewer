@@ -1,3 +1,9 @@
+/**
+ * models/Job.model.js
+ *
+ * Job Listing Schema for locally created/managed job postings and third-party synced jobs.
+ * Supports features like pinning, archiving, and featuring listings.
+ */
 'use strict';
 
 const mongoose = require('mongoose');
@@ -23,13 +29,13 @@ const jobSchema = new mongoose.Schema(
     },
     location: {
       type: String,
+      default: 'Remote',
       required: [true, 'Location is required'],
       trim: true,
     },
     description: {
       type: String,
       required: [true, 'Job description is required'],
-      trim: true,
     },
     salaryMin: {
       type: Number,
@@ -41,17 +47,34 @@ const jobSchema = new mongoose.Schema(
     },
     category: {
       type: String,
+      default: 'General',
       trim: true,
-      default: null,
     },
     contractType: {
       type: String,
+      enum: ['full_time', 'part_time', 'contract', 'internship', 'temporary'],
+      default: 'full_time',
       trim: true,
-      default: null, // e.g. full_time, part_time, contract, permanent
+    },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+    },
+    isPinned: {
+      type: Boolean,
+      default: false,
+    },
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
+    applyUrl: {
+      type: String,
+      default: '',
+      trim: true,
     },
     redirectUrl: {
       type: String,
-      required: [true, 'Redirect/Apply URL is required'],
       trim: true,
     },
     source: {
@@ -66,6 +89,11 @@ const jobSchema = new mongoose.Schema(
     postedTime: {
       type: Date,
       default: Date.now,
+    },
+    postedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: false,
     },
     // Supporting Scraper Module Fields (Sparse / Optional)
     jobHash: {
@@ -85,16 +113,16 @@ const jobSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Automatically manages createdAt and updatedAt fields
+    timestamps: true,
   }
 );
 
 // ─── Indexes ──────────────────────────────────────────────────────
 
-// Text Index for full-text search optimization on title, description, and skills
+// Text Index for full-text search optimization on title, company, description, and skills
 jobSchema.index(
-  { title: 'text', description: 'text', skills: 'text' },
-  { weights: { title: 10, skills: 5, description: 1 }, name: 'JobTextIndex' }
+  { title: 'text', company: 'text', description: 'text', skills: 'text' },
+  { weights: { title: 10, company: 5, skills: 5, description: 1 }, name: 'JobTextIndex' }
 );
 
 // Filtering & sorting optimization indexes

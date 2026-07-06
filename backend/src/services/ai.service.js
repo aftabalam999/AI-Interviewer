@@ -1,6 +1,22 @@
 const groq = require('../config/groq');
 const { extractContextViaRAG, buildSemanticChunks, createAndStoreEmbeddings, retrieveContextForTopic } = require('./rag.service');
 const { optimizeQuery } = require('./optimizer.service');
+const SystemPrompt = require('../models/SystemPrompt.model');
+
+const getActivePrompt = async (category, defaultVal) => {
+  try {
+    const promptDoc = await SystemPrompt.findOne({ category });
+    return promptDoc ? promptDoc.content : defaultVal;
+  } catch {
+    return defaultVal;
+  }
+};
+
+const formatPrompt = (template, vars) => {
+  return template.replace(/\$\{(\w+)\}/g, (match, key) => {
+    return vars[key] !== undefined ? vars[key] : match;
+  });
+};
 
 /**
  * Generate interview questions using Groq LLM (llama-3.3-70b-versatile)
@@ -130,12 +146,12 @@ Return structured JSON exactly in this format:
  * Evaluate a candidate's answer using Groq
  */
 const evaluateAnswer = async ({ questionText, answerText, expectedKeywords, jobTitle }) => {
-  const prompt = `Act as an interviewer evaluating a candidate's response.
+  const defaultPrompt = `Act as an interviewer evaluating a candidate's response.
 
-Job Title: ${jobTitle}
-Question: ${questionText}
-Expected Keywords Context: ${expectedKeywords.join(', ')}
-Candidate's Answer: ${answerText || '(No answer provided)'}
+Job Title: \${jobTitle}
+Question: \${questionText}
+Expected Keywords Context: \${expectedKeywordsText}
+Candidate's Answer: \${answerText}
 
 Evaluate the candidate's answer strictly based on:
 1. Correctness
@@ -147,6 +163,14 @@ Return valid JSON exactly in this format:
   "score": <number 1-10>,
   "feedback": "<constructive feedback string explaining the evaluation based on correctness, clarity, and depth>"
 }`;
+
+  const rawTemplate = await getActivePrompt('ats_scorer', defaultPrompt);
+  const prompt      = formatPrompt(rawTemplate, {
+    jobTitle,
+    questionText,
+    expectedKeywordsText: expectedKeywords.join(', '),
+    answerText: answerText || '(No answer provided)',
+  });
 
   const response = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
@@ -168,12 +192,12 @@ const generateOverallFeedback = async ({ jobTitle, answers }) => {
     .map((a, i) => `Q${i + 1}: ${a.questionText}\nScore: ${a.aiScore}/10\nAnswer: ${a.answerText?.slice(0, 200)}`)
     .join('\n\n');
 
-  const prompt = `You are a senior interviewer providing a final interview report.
+  const defaultPrompt = `You are a senior interviewer providing a final interview report.
 Be professional and concise.
 
-Job Title: ${jobTitle}
+Job Title: \${jobTitle}
 Interview Summary:
-${summary}
+\${summary}
 
 Respond with valid JSON exacty in this format:
 {
@@ -182,6 +206,9 @@ Respond with valid JSON exacty in this format:
   "weaknesses": ["<point 1>", "<point 2>"],
   "improvementTips": ["<point 1>", "<point 2>"]
 }`;
+
+  const rawTemplate = await getActivePrompt('feedback_report', defaultPrompt);
+  const prompt      = formatPrompt(rawTemplate, { jobTitle, summary });
 
   const response = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
@@ -202,7 +229,7 @@ Respond with valid JSON exacty in this format:
  * @returns {Promise<Object>} Structured { resume, jobDescription } object
  */
 const parseResumeAndJD = async (resumeText, jdText) => {
-  const systemPrompt = `You are an expert resume and job description parser.
+  const defaultPrompt = `You are an expert resume and job description parser.
 
 Extract structured data in strict JSON format.
 
@@ -223,6 +250,8 @@ Rules:
 - Do not hallucinate
 - If missing, return empty array or null
 - Keep output strictly JSON`;
+
+  const systemPrompt = await getActivePrompt('resume_parser', defaultPrompt);
 
   const userPrompt = `Input:
 RESUME:
