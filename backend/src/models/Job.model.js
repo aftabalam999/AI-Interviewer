@@ -1,7 +1,7 @@
 /**
  * models/Job.model.js
  *
- * Job Listing Schema for locally created/managed job postings.
+ * Job Listing Schema for locally created/managed job postings and third-party synced jobs.
  * Supports features like pinning, archiving, and featuring listings.
  */
 'use strict';
@@ -39,31 +39,21 @@ const jobSchema = new mongoose.Schema(
     },
     salaryMin: {
       type: Number,
-      min: [0, 'Salary cannot be negative'],
-      trim: true,
-    },
-    salaryMin: {
-      type: Number,
       default: null,
     },
     salaryMax: {
       type: Number,
-      min: [0, 'Salary cannot be negative'],
       default: null,
     },
     category: {
       type: String,
+      default: 'General',
       trim: true,
-      default: null,
     },
     contractType: {
       type: String,
       enum: ['full_time', 'part_time', 'contract', 'internship', 'temporary'],
       default: 'full_time',
-    },
-    category: {
-      type: String,
-      default: 'General',
       trim: true,
     },
     isFeatured: {
@@ -83,25 +73,8 @@ const jobSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
-    postedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
-
-// Compound index to help search/filtering
-jobSchema.index({ title: 'text', company: 'text', description: 'text' });
-      trim: true,
-      default: null, // e.g. full_time, part_time, contract, permanent
-    },
     redirectUrl: {
       type: String,
-      required: [true, 'Redirect/Apply URL is required'],
       trim: true,
     },
     source: {
@@ -116,6 +89,11 @@ jobSchema.index({ title: 'text', company: 'text', description: 'text' });
     postedTime: {
       type: Date,
       default: Date.now,
+    },
+    postedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: false,
     },
     // Supporting Scraper Module Fields (Sparse / Optional)
     jobHash: {
@@ -135,16 +113,16 @@ jobSchema.index({ title: 'text', company: 'text', description: 'text' });
     },
   },
   {
-    timestamps: true, // Automatically manages createdAt and updatedAt fields
+    timestamps: true,
   }
 );
 
 // ─── Indexes ──────────────────────────────────────────────────────
 
-// Text Index for full-text search optimization on title, description, and skills
+// Text Index for full-text search optimization on title, company, description, and skills
 jobSchema.index(
-  { title: 'text', description: 'text', skills: 'text' },
-  { weights: { title: 10, skills: 5, description: 1 }, name: 'JobTextIndex' }
+  { title: 'text', company: 'text', description: 'text', skills: 'text' },
+  { weights: { title: 10, company: 5, skills: 5, description: 1 }, name: 'JobTextIndex' }
 );
 
 // Filtering & sorting optimization indexes

@@ -15,27 +15,54 @@ console.log('SERVER APP KEY:', process.env.ADZUNA_APP_KEY);
 const app = require('./app');
 const logger = require('./config/logger');
 
+const mongoose = require('mongoose');
+
 const PORT = process.env.PORT || 5000;
 
 // ─── Start HTTP server ─────────────────────────────────────────────
 const server = app.listen(PORT, async () => {
   logger.info(`🚀 Server running in [${process.env.NODE_ENV}] mode on port ${PORT}`);
   
-  // Initialize automatic job scraper scheduler
-  try {
-    const { initScraperScheduler } = require('./controllers/adminScraper.controller');
-    await initScraperScheduler();
-  } catch (err) {
-    logger.error(`❌ Job Scraper scheduler failure: ${err.message}`);
-  }
-const { initSyncScheduler } = require('./services/jobSyncScheduler');
-const { initCleanupScheduler } = require('./services/jobCleanupService');
-
-const server = app.listen(PORT, () => {
-  logger.info(`🚀 Server running in [${process.env.NODE_ENV}] mode on port ${PORT}`);
-  // Start the background services
-  initSyncScheduler();
-  initCleanupScheduler();
+  // Initialize automatic job scraper scheduler and other DB-dependent services
+  const initDbDependentServices = async () => {
+    try {
+      // If mongoose is still connecting (readyState === 2), wait for it to connect
+      if (mongoose.connection.readyState === 2) {
+        logger.info('⏳ Waiting for MongoDB connection before initializing schedulers...');
+        await new Promise((resolve) => {
+          mongoose.connection.once('connected', resolve);
+        });
+      }
+      
+      if (mongoose.connection.readyState === 1) {
+        logger.info('⚙️ Initializing schedulers after MongoDB connection...');
+        // Initialize scraper
+        try {
+          const { initScraperScheduler } = require('./controllers/adminScraper.controller');
+          await initScraperScheduler();
+        } catch (err) {
+          logger.error(`❌ Job Scraper scheduler failure: ${err.message}`);
+        }
+        
+        // Initialize other background services
+        try {
+          const { initSyncScheduler } = require('./services/jobSyncScheduler');
+          const { initCleanupScheduler } = require('./services/jobCleanupService');
+          initSyncScheduler();
+          initCleanupScheduler();
+          logger.info('🚀 Background services (Sync & Cleanup) initialized successfully');
+        } catch (err) {
+          logger.error(`❌ Background services initialization failure: ${err.message}`);
+        }
+      } else {
+        logger.warn('⚠️ MongoDB is not connected. Schedulers will not be initialized.');
+      }
+    } catch (err) {
+      logger.error(`❌ Database-dependent services startup failure: ${err.message}`);
+    }
+  };
+  
+  await initDbDependentServices();
 });
 
 // Initialize WebSocket for real-time AI interviews
