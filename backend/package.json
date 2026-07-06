@@ -1,6 +1,6 @@
 {
   "name": "ai-interview-backend",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "AI Interview App Backend - Node.js + Express + MongoDB",
   "main": "src/server.js",
   "scripts": {
@@ -34,6 +34,8 @@
     "multer-storage-cloudinary": "^4.0.0",
     "node-cron": "^4.5.0",
     "pdf-parse": "^1.1.1",
+    "pg": "^8.22.0",
+    "redis": "^6.1.0",
     "socket.io": "^4.8.3",
     "winston": "^3.13.0"
   },

@@ -1,119 +1,145 @@
 'use strict';
 
 /**
- * redis.js — Redis client singleton (ioredis)
- *
- * ioredis uses a single multiplexed TCP connection (all commands share one
- * socket, pipelined automatically). This is equivalent to a connection pool
- * for most workloads.
- *
- * Connection pool / performance settings:
- *   enableOfflineQueue  false  — fail-fast, never queue when disconnected
- *   maxRetriesPerRequest 1     — surface errors quickly
- *   keepAlive           true   — TCP keepalive; prevents NAT/firewall drops
- *   connectTimeout      5 000ms
- *   commandTimeout      3 000ms
- *   retryStrategy       exponential backoff, max 10 retries
- *
- * Config (env vars):
- *   REDIS_URL        redis[s]://[:password@]host:port  (takes precedence)
- *   REDIS_HOST       default: 127.0.0.1
- *   REDIS_PORT       default: 6379
- *   REDIS_PASSWORD   optional
- *   REDIS_DB         default: 0
- *   REDIS_TLS        set to "true" for TLS (Redis Cloud / Upstash)
- *   REDIS_ENABLED    set to "false" to disable entirely (useful in CI)
+ * redis.js — Redis client singleton (official redis package)
  */
 
-const Redis = require('ioredis');
+const { createClient } = require('redis');
 
 const REDIS_ENABLED = process.env.REDIS_ENABLED !== 'false';
-const REDIS_TLS     = process.env.REDIS_TLS     === 'true';
 
-// Exponential backoff retry: 50ms → 200ms → 800ms … cap at 5s, max 10 retries
-function retryStrategy(times) {
-  if (times > 10) {
-    console.error('[Redis] Max reconnection attempts reached. Giving up.');
-    return null; // stop retrying
+class OfficialRedisCompatWrapper {
+  constructor(nativeClient) {
+    this.native = nativeClient;
   }
-  const delay = Math.min(50 * Math.pow(2, times - 1), 5000);
-  console.warn(`[Redis] Reconnecting in ${delay}ms (attempt ${times})…`);
-  return delay;
+
+  on(event, handler) {
+    this.native.on(event, handler);
+    return this;
+  }
+
+  async get(key) {
+    return await this.native.get(key);
+  }
+
+  async set(key, value, ...args) {
+    if (args[0] === 'EX') {
+      const ttl = args[1];
+      return await this.native.set(key, value, { EX: ttl });
+    }
+    return await this.native.set(key, value);
+  }
+
+  async del(key) {
+    return await this.native.del(key);
+  }
+
+  async info(section) {
+    return await this.native.info(section);
+  }
+
+  async dbsize() {
+    return await this.native.dbSize();
+  }
+
+  pipeline() {
+    const multi = this.native.multi();
+    const commands = [];
+    
+    return {
+      sadd: (key, member) => {
+        multi.sAdd(key, member);
+        commands.push('sadd');
+        return this;
+      },
+      expire: (key, ttl) => {
+        multi.expire(key, ttl);
+        commands.push('expire');
+        return this;
+      },
+      exec: async () => {
+        const results = await multi.exec();
+        // ioredis returns array of [err, value]
+        return results.map(val => [null, val]);
+      }
+    };
+  }
+
+  async quit() {
+    await this.native.quit();
+  }
 }
 
 let client = null;
+let compatClient = null;
 
 if (REDIS_ENABLED) {
-  const baseOptions = {
-    host               : process.env.REDIS_HOST     || '127.0.0.1',
-    port               : parseInt(process.env.REDIS_PORT, 10) || 6379,
-    password           : process.env.REDIS_PASSWORD  || undefined,
-    db                 : parseInt(process.env.REDIS_DB, 10)   || 0,
+  const url = process.env.REDIS_URL || `redis://${process.env.REDIS_HOST || '127.0.0.1'}:${process.env.REDIS_PORT || 6379}`;
+  
+  client = createClient({
+    url,
+    socket: {
+      reconnectStrategy: (retries) => {
+        if (retries > 5) {
+          console.warn('[Redis] Max reconnection attempts reached. Disabling connection retries.');
+          return false; // Stop retrying
+        }
+        return Math.min(retries * 500, 2000);
+      }
+    }
+  });
 
-    // ── Connection pooling / performance ────────────────────────────
-    lazyConnect        : true,   // defer connection until first command
-    enableOfflineQueue : false,  // reject commands immediately when down
-    maxRetriesPerRequest: 1,     // surface errors fast, don't hang
-    connectTimeout     : parseInt(process.env.REDIS_CONNECT_TIMEOUT_MS, 10) || 5000,
-    commandTimeout     : parseInt(process.env.REDIS_COMMAND_TIMEOUT_MS, 10) || 3000,
+  client.on('error', (err) => console.warn('[Redis] Error:', err.message));
+  client.on('connect', () => console.log('[Redis] Connecting...'));
+  client.on('ready', () => console.log('[Redis] Redis Connected'));
+  client.on('end', () => console.warn('[Redis] Connection closed'));
 
-    // ── TCP keepalive ────────────────────────────────────────────────
-    // Prevents NAT / cloud firewall from silently dropping idle sockets.
-    // Value = ms between keepalive probes sent by the OS.
-    keepAlive          : 10_000, // 10s
-    family             : 4,      // force IPv4 — avoids dual-stack lookup delays
-
-    // ── Retry strategy ───────────────────────────────────────────────
-    retryStrategy,
-
-    // ── TLS (Redis Cloud, Upstash, AWS ElastiCache in-transit) ───────
-    ...(REDIS_TLS ? { tls: {} } : {}),
-  };
-
-  const connectionOptions = process.env.REDIS_URL
-    ? (() => {
-        // When using a URL, still layer in performance & TLS settings
-        const url = new URL(process.env.REDIS_URL);
-        return {
-          host              : url.hostname,
-          port              : parseInt(url.port, 10) || 6379,
-          password          : url.password || undefined,
-          db                : parseInt(url.pathname.slice(1), 10) || 0,
-          ...baseOptions,
-          // These override the URL-derived fields intentionally
-          lazyConnect       : true,
-          enableOfflineQueue: false,
-        };
-      })()
-    : baseOptions;
-
-  client = new Redis(connectionOptions);
-
-  client.on('connect',      () => console.log('[Redis] Connected'));
-  client.on('ready',        () => console.log('[Redis] Ready'));
-  client.on('error',        (err) => console.warn('[Redis] Error:', err.message));
-  client.on('close',        () => console.warn('[Redis] Connection closed'));
-  client.on('reconnecting', () => console.log('[Redis] Reconnecting…'));
+  compatClient = new OfficialRedisCompatWrapper(client);
 } else {
   console.log('[Redis] Disabled via REDIS_ENABLED=false');
 }
 
-/**
- * Returns the ioredis client, or null when Redis is disabled / not yet connected.
- * @returns {import('ioredis').Redis|null}
- */
 function getClient() {
-  return client;
+  return compatClient;
 }
 
-/**
- * Gracefully disconnect (useful in tests / graceful shutdown).
- */
+async function connect() {
+  if (client) {
+    try {
+      await client.connect();
+    } catch (err) {
+      console.error('[Redis] Failed to connect on startup:', err.message);
+    }
+  }
+}
+
 async function disconnect() {
   if (client) {
     await client.quit().catch(() => {});
     client = null;
+    compatClient = null;
   }
 }
 
-module.exports = { getClient, disconnect };
+async function clearJobsCache() {
+  if (client) {
+    try {
+      await client.del('jobs:all');
+      
+      let cursor = 0;
+      do {
+        const reply = await client.scan(cursor, { MATCH: 'jobs:*', COUNT: 100 });
+        cursor = reply.cursor;
+        if (reply.keys && reply.keys.length > 0) {
+          await client.del(reply.keys);
+        }
+      } while (cursor !== 0);
+      
+      console.log('[Redis] Cleared "jobs:all" and all "jobs:*" cache keys');
+    } catch (err) {
+      console.warn('[Redis] Failed to clear jobs cache keys:', err.message);
+    }
+  }
+}
+
+module.exports = { getClient, connect, disconnect, clearJobsCache };
