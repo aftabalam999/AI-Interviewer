@@ -14,6 +14,14 @@ export const useAuthStore = create(
       // ── Actions ──────────────────────────────────────────
       setAccessToken: (token) => set({ accessToken: token }),
 
+      completeLogin: ({ user, accessToken, refreshToken }) => set({
+        user,
+        accessToken,
+        refreshToken,
+        isAuthenticated: true,
+        isLoading: false,
+      }),
+
       login: async ({ email, password }) => {
         set({ isLoading: true });
         try {

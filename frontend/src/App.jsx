@@ -28,6 +28,7 @@ import AdminLayout     from '@/layouts/AdminLayout';
 import LandingPage          from '@/pages/LandingPage';
 import LoginPage            from '@/pages/auth/LoginPage';
 import RegisterPage         from '@/pages/auth/RegisterPage';
+import AuthCallbackPage     from '@/pages/auth/AuthCallbackPage';
 import DashboardPage        from '@/pages/dashboard/DashboardPage';
 import NewInterviewPage     from '@/pages/interview/NewInterviewPage';
 import InterviewListPage    from '@/pages/interview/InterviewListPage';
@@ -118,6 +119,7 @@ export default function App() {
 
       {/* ── Guest-only (auth) ────────────────────── */}
       <Route element={<AuthLayout />}>
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route
           path="/login"
           element={<GuestRoute><LoginPage /></GuestRoute>}
