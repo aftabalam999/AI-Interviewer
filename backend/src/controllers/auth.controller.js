@@ -1,9 +1,89 @@
 const { validationResult } = require('express-validator');
+const crypto = require('crypto');
+const axios = require('axios');
 const User = require('../models/User.model');
 const AppError = require('../utils/AppError');
-const { sendTokenResponse } = require('../utils/jwt.utils');
+const { generateAccessToken, generateRefreshToken, sendTokenResponse } = require('../utils/jwt.utils');
 
 const ADMIN_EMAIL = 'aftab@admin.com';
+
+const getGoogleRedirectUri = () => process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5000/api/auth/google/callback';
+
+exports.googleAuth = (req, res) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(503).json({ success: false, message: 'Google sign-in is not configured.' });
+  }
+
+  const state = crypto.randomBytes(24).toString('hex');
+  res.setHeader('Set-Cookie', `google_oauth_state=${state}; HttpOnly; SameSite=Lax; Path=/; Max-Age=600`);
+
+  const params = new URLSearchParams({
+    client_id: process.env.GOOGLE_CLIENT_ID,
+    redirect_uri: getGoogleRedirectUri(),
+    response_type: 'code',
+    scope: 'openid email profile',
+    state,
+    access_type: 'online',
+    prompt: 'select_account',
+  });
+
+  return res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+};
+
+exports.googleCallback = async (req, res) => {
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const cookies = Object.fromEntries((req.headers.cookie || '').split(';').filter(Boolean).map((part) => {
+    const [key, ...value] = part.trim().split('=');
+    return [key, value.join('=')];
+  }));
+
+  if (req.query.error || !req.query.code || !req.query.state || req.query.state !== cookies.google_oauth_state) {
+    return res.redirect(`${clientUrl}/register?googleError=cancelled`);
+  }
+
+  try {
+    const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', new URLSearchParams({
+      code: req.query.code,
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: getGoogleRedirectUri(),
+      grant_type: 'authorization_code',
+    }).toString(), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+
+    const profileResponse = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${tokenResponse.data.access_token}` },
+    });
+    const profile = profileResponse.data;
+
+    if (!profile.email || profile.email_verified === false) {
+      return res.redirect(`${clientUrl}/register?googleError=unverified`);
+    }
+
+    let user = await User.findOne({ email: profile.email });
+    if (!user) {
+      user = await User.create({
+        name: profile.name || profile.email.split('@')[0],
+        email: profile.email,
+        password: crypto.randomBytes(32).toString('hex'),
+        avatar: profile.picture || null,
+      });
+    }
+
+    if (!user.isActive || user.isBanned) {
+      return res.redirect(`${clientUrl}/register?googleError=inactive`);
+    }
+
+    user.lastLogin = new Date();
+    await user.save({ validateBeforeSave: false });
+
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+    return res.redirect(`${clientUrl}/auth/callback#accessToken=${encodeURIComponent(accessToken)}&refreshToken=${encodeURIComponent(refreshToken)}`);
+  } catch (error) {
+    console.error('Google OAuth failed:', error.response?.data || error.message);
+    return res.redirect(`${clientUrl}/register?googleError=failed`);
+  }
+};
 
 // ─── POST /api/auth/register ───────────────────────────────────────
 exports.register = async (req, res, next) => {

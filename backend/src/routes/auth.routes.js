@@ -5,6 +5,8 @@ const router = express.Router();
 const {
   register,
   login,
+  googleAuth,
+  googleCallback,
   refreshToken,
   getMe,
   logout,
@@ -28,6 +30,8 @@ const loginValidation = [
 
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);
+router.get('/google', googleAuth);
+router.get('/google/callback', googleCallback);
 router.post('/refresh', refreshToken);
 router.get('/me', protect, getMe);
 router.post('/logout', protect, logout);
