@@ -9,7 +9,6 @@
 const User        = require('../models/User.model');
 const Session     = require('../models/Session.model');
 const Transaction = require('../models/Transaction.model');
-const Job         = require('../models/Job.model');
 const AppError    = require('../utils/AppError');
 
 // Helper to stagger date intervals
@@ -34,13 +33,13 @@ exports.getAnalytics = async (req, res) => {
   const start = getStartDateFromRange(range);
 
   // 1. General Cohorts Counts
-  const [totalCandidates, premiumCandidates, totalJobs, activeSessionsCount, completedSessionsCount] = await Promise.all([
+  const [totalCandidates, premiumCandidates, activeSessionsCount, completedSessionsCount] = await Promise.all([
     User.countDocuments({ role: 'candidate' }),
     User.countDocuments({ role: 'candidate', isPremium: true }),
-    Job.countDocuments({ isArchived: false }),
     Session.countDocuments(),
     Session.countDocuments({ status: 'completed' }),
   ]);
+  const totalJobs = 0;
 
   // Calculations
   const conversionRate = totalCandidates > 0 ? parseFloat(((premiumCandidates / totalCandidates) * 100).toFixed(2)) : 0;
@@ -89,18 +88,6 @@ exports.getAnalytics = async (req, res) => {
     { $sort: { _id: 1 } }
   ]);
 
-  // 5. Jobs listings creation trend
-  const jobsTrend = await Job.aggregate([
-    { $match: { createdAt: { $gte: start } } },
-    {
-      $group: {
-        _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-        count: { $sum: 1 },
-      }
-    },
-    { $sort: { _id: 1 } }
-  ]);
-
   // Helper function to fill missing date entries with zero-counts
   const fillMissingDates = (trendData, field = 'count') => {
     const datesMap = {};
@@ -125,7 +112,7 @@ exports.getAnalytics = async (req, res) => {
   const formattedUsersTrend     = fillMissingDates(registrationsTrend, 'count');
   const formattedRevenueTrend   = fillMissingDates(revenueTrend, 'amount');
   const formattedSessionsTrend  = fillMissingDates(sessionsTrend, 'count');
-  const formattedJobsTrend      = fillMissingDates(jobsTrend, 'count');
+  const formattedJobsTrend      = [];
 
   // 6. Retention cohort simulation (stagger cohort weeks)
   const retentionCohort = [

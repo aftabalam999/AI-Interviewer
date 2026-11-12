@@ -2,7 +2,6 @@ const User        = require('../models/User.model');
 const Interview   = require('../models/Interview.model');
 const Session     = require('../models/Session.model');
 const Resume      = require('../models/Resume.model');
-const Job         = require('../models/Job.model');
 const Transaction = require('../models/Transaction.model');
 const AuditLog    = require('../models/AuditLog.model');
 const AppError    = require('../utils/AppError');
@@ -25,7 +24,6 @@ exports.getStats = async (req, res) => {
     activeUsers,
     completedSessions,
     interviewsToday,
-    jobsCount,
   ] = await Promise.all([
     User.countDocuments({ role: 'candidate' }),
     User.countDocuments({ role: 'candidate', isPremium: true }),
@@ -35,8 +33,8 @@ exports.getStats = async (req, res) => {
     User.countDocuments({ isActive: true, role: 'candidate' }),
     Session.countDocuments({ status: 'completed' }),
     Interview.countDocuments({ createdAt: { $gte: today } }),
-    Job.countDocuments({ isArchived: false }),
   ]);
+  const jobsCount = 0;
 
   const freeUsers = Math.max(0, totalUsers - premiumUsers);
   const applicationsCount = totalResumes + totalSessions;

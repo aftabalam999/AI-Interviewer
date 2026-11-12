@@ -4,6 +4,7 @@ require("dotenv").config();
 const SystemPrompt = require('./models/SystemPrompt.model');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const GROQ_MODEL = process.env.GROQ_MODEL || 'qwen/qwen3.8-27b';
 
 const initSocket = (httpServer) => {
   const io = new Server(httpServer, {
@@ -33,7 +34,7 @@ Expected Keywords: ${expectedKeywords?.join(', ') || 'None'}
 Candidate Answer: ${answerText || '(silence)'}`;
 
         const stream = await groq.chat.completions.create({
-          model: "llama-3.3-70b-versatile",
+          model: GROQ_MODEL,
           messages: [{ role: "user", content: prompt }],
           temperature: 0.5,
           max_tokens: 150,

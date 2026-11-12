@@ -27,8 +27,6 @@ const systemSettingSchema = new mongoose.Schema(
       apiKeys: {
         groq: { type: String, default: '' },
         stripe: { type: String, default: '' },
-        adzunaId: { type: String, default: '' },
-        adzunaKey: { type: String, default: '' },
       },
       rateLimits: {
         windowMs: { type: Number, default: 15 * 60 * 1000 }, // 15 mins
@@ -36,7 +34,7 @@ const systemSettingSchema = new mongoose.Schema(
       },
     },
     ai: {
-      model: { type: String, default: 'llama-3.3-70b-versatile' },
+      model: { type: String, default: 'qwen/qwen3.8-27b' },
       temperature: { type: Number, default: 0.5, min: 0, max: 2.0 },
       maxTokens: { type: Number, default: 1024 },
     },
@@ -55,8 +53,6 @@ const systemSettingSchema = new mongoose.Schema(
       },
     },
     featureFlags: {
-      enableJobs: { type: Boolean, default: true },
-      enableScraper: { type: Boolean, default: true },
       enableATS: { type: Boolean, default: true },
       enableCoach: { type: Boolean, default: true },
     },

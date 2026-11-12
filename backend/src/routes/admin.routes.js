@@ -38,25 +38,6 @@ const {
 } = require('../controllers/admin.controller');
 
 const {
-  createJob,
-  getAllJobs,
-  getJobStats,
-  getJobById,
-  updateJob,
-  deleteJob,
-  bulkJobAction,
-} = require('../controllers/adminJob.controller');
-
-const {
-  getScraperStatus,
-  updateScraperSettings,
-  triggerManualScrape,
-  pauseScraperScheduler,
-  resumeScraperScheduler,
-  getScraperLogs,
-} = require('../controllers/adminScraper.controller');
-
-const {
   createTemplate,
   getAllTemplates,
   getTemplateById,
@@ -123,15 +104,6 @@ router.get('/users/:id',       getUserById);
 router.patch('/users/:id',     updateUser);
 router.delete('/users/:id',    requireSuperAdmin, deleteUser);   // Super Admin only
 
-// ── Jobs ──────────────────────────────────────────────────────────
-router.get('/jobs',            getAllJobs);
-router.get('/jobs/stats',      getJobStats);
-router.post('/jobs',           createJob);
-router.post('/jobs/bulk',      bulkJobAction);
-router.get('/jobs/:id',        getJobById);
-router.patch('/jobs/:id',      updateJob);
-router.delete('/jobs/:id',     deleteJob);
-
 // ── Interviews ────────────────────────────────────────────────────
 router.get('/interviews',              getAllInterviews);
 router.delete('/interviews/:id',       deleteInterview);
@@ -143,14 +115,6 @@ router.delete('/sessions/:id',         deleteSession);
 // ── Resumes ───────────────────────────────────────────────────────
 router.get('/resumes',                 getAllResumes);
 router.delete('/resumes/:id',          deleteResume);
-
-// ── Scraper Control ───────────────────────────────────────────────
-router.get('/scraper/status',          getScraperStatus);
-router.patch('/scraper/settings',      requirePermission('update:settings'), updateScraperSettings);
-router.post('/scraper/run',            requirePermission('run:scraper'), triggerManualScrape);
-router.post('/scraper/pause',          requirePermission('run:scraper'), pauseScraperScheduler);
-router.post('/scraper/resume',         requirePermission('run:scraper'), resumeScraperScheduler);
-router.get('/scraper/logs',            getScraperLogs);
 
 // ── Interview Templates ───────────────────────────────────────────
 router.get('/templates',               getAllTemplates);
