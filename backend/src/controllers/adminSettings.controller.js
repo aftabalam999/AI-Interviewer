@@ -24,11 +24,11 @@ const getOrCreateSettings = async () => {
       },
       security: {
         jwtExpiry: '7d',
-        apiKeys: { groq: '', stripe: '', adzunaId: '', adzunaKey: '' },
+        apiKeys: { groq: '', stripe: '' },
         rateLimits: { windowMs: 15 * 60 * 1000, maxRequests: 100 },
       },
       ai: {
-        model: 'llama-3.3-70b-versatile',
+        model: process.env.GROQ_MODEL || 'qwen/qwen3.8-27b',
         temperature: 0.5,
         maxTokens: 1024,
       },
@@ -38,8 +38,6 @@ const getOrCreateSettings = async () => {
         aws: { bucket: '', region: '', accessKey: '', secretKey: '' },
       },
       featureFlags: {
-        enableJobs: true,
-        enableScraper: true,
         enableATS: true,
         enableCoach: true,
       },

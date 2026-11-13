@@ -9,8 +9,6 @@
  */
 
 require('dotenv').config({ override: true });
-console.log('SERVER APP ID:', process.env.ADZUNA_APP_ID);
-console.log('SERVER APP KEY:', process.env.ADZUNA_APP_KEY);
 
 const app = require('./app');
 const logger = require('./config/logger');
@@ -20,17 +18,12 @@ const mongoose = require('mongoose');
 const PORT = process.env.PORT || 5000;
 
 // ─── Start HTTP server ─────────────────────────────────────────────
-const { initSyncScheduler } = require('./services/jobSyncScheduler');
-const { initCleanupScheduler } = require('./services/jobCleanupService');
 const { connect: connectRedis } = require('./config/redis');
 
 const server = app.listen(PORT, async () => {
   logger.info(`🚀 Server running in [${process.env.NODE_ENV}] mode on port ${PORT}`);
   // Connect to Redis on server startup
   await connectRedis();
-  // Start the background services
-  initSyncScheduler();
-  initCleanupScheduler();
 });
 
 // Initialize WebSocket for real-time AI interviews

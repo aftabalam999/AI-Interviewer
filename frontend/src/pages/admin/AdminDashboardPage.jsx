@@ -165,12 +165,12 @@ export default function AdminDashboardPage() {
           to="/admin/interviews"
         />
         <StatCard
-          icon={Briefcase}
-          label="Active Jobs"
-          value={stats?.jobsCount}
-          sub="Available Listings"
+          icon={CheckCircle2}
+          label="Completed Sessions"
+          value={stats?.completedSessions}
+          sub="Evaluated mock tests"
           color="teal"
-          to="/admin/jobs"
+          to="/admin/sessions"
         />
         <StatCard
           icon={FileText}
@@ -347,9 +347,9 @@ export default function AdminDashboardPage() {
                 <Shield size={13} className="text-purple-400" />
                 System Audit
               </Link>
-              <Link to="/admin/jobs" className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.06] text-slate-300 text-xs font-medium transition-colors">
+              <Link to="/admin/sessions" className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.06] text-slate-300 text-xs font-medium transition-colors">
                 <Play size={13} className="text-emerald-400" />
-                Sync Listings
+                Manage Sessions
               </Link>
               <Link to="/admin/settings" className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.06] text-slate-300 text-xs font-medium transition-colors">
                 <Terminal size={13} className="text-orange-400" />

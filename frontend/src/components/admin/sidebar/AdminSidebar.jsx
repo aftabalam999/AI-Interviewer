@@ -30,7 +30,6 @@ const NAV_GROUPS = [
     items: [
       { to: '/admin',            label: 'Dashboard',    icon: LayoutDashboard, end: true },
       { to: '/admin/users',      label: 'Users',         icon: Users,           permission: 'view:users' },
-      { to: '/admin/jobs',       label: 'Jobs',          icon: Briefcase,       permission: 'view:jobs' },
       { to: '/admin/interviews', label: 'Interviews',    icon: MessageSquare,   permission: 'view:templates' },
       { to: '/admin/resumes',    label: 'Resumes',       icon: FileText,        permission: 'view:users' },
     ],
@@ -51,7 +50,6 @@ const NAV_GROUPS = [
   {
     label: 'System',
     items: [
-      { to: '/admin/scraper',    label: 'Job Scraper',  icon: RefreshCw,       permission: 'view:scraper' },
       { to: '/admin/prompts',    label: 'Prompt Editor',icon: FileText,        permission: 'view:prompts' },
       { to: '/admin/logs',       label: 'System Logs',  icon: Terminal,        permission: 'view:logs' },
       { to: '/admin/analytics',  label: 'Analytics',    icon: BarChart2,       permission: 'view:analytics' },

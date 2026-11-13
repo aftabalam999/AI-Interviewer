@@ -37,11 +37,11 @@ export default function AdminSettingsPage() {
     },
     security: {
       jwtExpiry: '7d',
-      apiKeys: { groq: '', stripe: '', adzunaId: '', adzunaKey: '' },
+      apiKeys: { groq: '', stripe: '' },
       rateLimits: { windowMs: 15 * 60 * 1000, maxRequests: 100 },
     },
     ai: {
-      model: 'llama-3.3-70b-versatile',
+      model: 'qwen/qwen3.8-27b',
       temperature: 0.5,
       maxTokens: 1024,
     },
@@ -51,8 +51,6 @@ export default function AdminSettingsPage() {
       aws: { bucket: '', region: '', accessKey: '', secretKey: '' },
     },
     featureFlags: {
-      enableJobs: true,
-      enableScraper: true,
       enableATS: true,
       enableCoach: true,
     },
@@ -343,26 +341,6 @@ export default function AdminSettingsPage() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="form-label">Adzuna App ID</label>
-                      <input
-                        className="form-input text-xs"
-                        value={form.security.apiKeys.adzunaId}
-                        onChange={(e) => setForm(p => ({ ...p, security: { ...p.security, apiKeys: { ...p.security.apiKeys, adzunaId: e.target.value } } }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="form-label">Adzuna Key</label>
-                      <input
-                        type="password"
-                        className="form-input text-xs"
-                        value={form.security.apiKeys.adzunaKey}
-                        onChange={(e) => setForm(p => ({ ...p, security: { ...p.security, apiKeys: { ...p.security.apiKeys, adzunaKey: e.target.value } } }))}
-                      />
-                    </div>
-                  </div>
-
                   <div>
                     <label className="form-label">API Throttler window (Minutes)</label>
                     <input
@@ -511,32 +489,6 @@ export default function AdminSettingsPage() {
                 </h3>
 
                 <div className="space-y-3">
-                  <label className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] cursor-pointer hover:bg-white/[0.04] transition-colors">
-                    <div className="space-y-0.5">
-                      <p className="text-xs font-semibold text-white">Jobs Module</p>
-                      <p className="text-[10px] text-slate-500">Enable searching, applying and matching custom postings</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={form.featureFlags.enableJobs}
-                      onChange={(e) => setForm(p => ({ ...p, featureFlags: { ...p.featureFlags, enableJobs: e.target.checked } }))}
-                      className="w-4 h-4 bg-surface-card border-slate-600 rounded text-brand-600 focus:ring-brand-500"
-                    />
-                  </label>
-
-                  <label className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] cursor-pointer hover:bg-white/[0.04] transition-colors">
-                    <div className="space-y-0.5">
-                      <p className="text-xs font-semibold text-white">Adzuna Job Scraper</p>
-                      <p className="text-[10px] text-slate-500">Enable background sync timers imports lists</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={form.featureFlags.enableScraper}
-                      onChange={(e) => setForm(p => ({ ...p, featureFlags: { ...p.featureFlags, enableScraper: e.target.checked } }))}
-                      className="w-4 h-4 bg-surface-card border-slate-600 rounded text-brand-600 focus:ring-brand-500"
-                    />
-                  </label>
-
                   <label className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] cursor-pointer hover:bg-white/[0.04] transition-colors">
                     <div className="space-y-0.5">
                       <p className="text-xs font-semibold text-white">ATS Evaluator Scorer</p>

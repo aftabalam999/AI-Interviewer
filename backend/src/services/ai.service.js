@@ -3,6 +3,8 @@ const { extractContextViaRAG, buildSemanticChunks, createAndStoreEmbeddings, ret
 const { optimizeQuery } = require('./optimizer.service');
 const SystemPrompt = require('../models/SystemPrompt.model');
 
+const GROQ_MODEL = process.env.GROQ_MODEL || 'qwen/qwen3.8-27b';
+
 const getActivePrompt = async (category, defaultVal) => {
   try {
     const promptDoc = await SystemPrompt.findOne({ category });
@@ -89,7 +91,7 @@ Return structured JSON exactly in this format:
 }`;
 
   const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: GROQ_MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -106,7 +108,12 @@ Return structured JSON exactly in this format:
   try {
     parsed = JSON.parse(content);
   } catch {
-    throw new Error('AI returned invalid JSON. Please try again.');
+    try {
+      const cleaned = content.replace(/```json\s*/gi, '').replace(/```\s*$/gi, '').trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      throw new Error('AI returned invalid JSON. Please try again.');
+    }
   }
 
   const technicalQs = Array.isArray(parsed.technical) ? parsed.technical : [];
@@ -173,7 +180,7 @@ Return valid JSON exactly in this format:
   });
 
   const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: GROQ_MODEL,
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.4,
     max_tokens: 512,
@@ -211,7 +218,7 @@ Respond with valid JSON exacty in this format:
   const prompt      = formatPrompt(rawTemplate, { jobTitle, summary });
 
   const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: GROQ_MODEL,
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.5,
     max_tokens: 1024,
@@ -261,7 +268,7 @@ JOB_DESCRIPTION:
 ${jdText || 'Not provided'}`;
 
   const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: GROQ_MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -322,7 +329,7 @@ Output:
 Numbered list of questions.`;
 
   const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: GROQ_MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -374,7 +381,7 @@ Return JSON exactly as:
 }`;
 
   const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: GROQ_MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -424,7 +431,7 @@ Output:
 Single follow-up question.`;
 
   const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: GROQ_MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -471,7 +478,7 @@ Return JSON exactly as:
 }`;
 
   const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: GROQ_MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -515,7 +522,7 @@ Response:
 ${modelOutput}`;
 
   const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: GROQ_MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -583,7 +590,7 @@ Job Description:
 ${jobDescription}`;
 
   const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: GROQ_MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },

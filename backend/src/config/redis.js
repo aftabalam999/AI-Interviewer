@@ -19,10 +19,12 @@ class OfficialRedisCompatWrapper {
   }
 
   async get(key) {
+    if (!this.native || !this.native.isOpen) return null;
     return await this.native.get(key);
   }
 
   async set(key, value, ...args) {
+    if (!this.native || !this.native.isOpen) return null;
     if (args[0] === 'EX') {
       const ttl = args[1];
       return await this.native.set(key, value, { EX: ttl });
@@ -31,6 +33,7 @@ class OfficialRedisCompatWrapper {
   }
 
   async del(key) {
+    if (!this.native || !this.native.isOpen) return null;
     return await this.native.del(key);
   }
 
@@ -122,7 +125,7 @@ async function disconnect() {
 }
 
 async function clearJobsCache() {
-  if (client) {
+  if (client && client.isOpen) {
     try {
       await client.del('jobs:all');
       

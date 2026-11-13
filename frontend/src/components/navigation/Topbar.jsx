@@ -8,7 +8,6 @@ const PAGE_TITLES = {
   '/interviews/new': 'New Interview',
   '/sessions': 'Session History',
   '/resumes': 'My Resumes',
-  '/jobs': 'Jobs Portal',
   '/profile': 'Profile',
 };
 

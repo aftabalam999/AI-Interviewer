@@ -35,7 +35,7 @@ const createAndStoreEmbeddings = async (chunks) => {
     throw new Error('OPENAI_API_KEY is missing. Required for embedding generation.');
   }
 
-  const embeddingsClient = new OpenAIEmbeddings({ modelName: 'text-embedding-3-small' });
+  const embeddingsClient = new OpenAIEmbeddings({ modelName: 'text-embedding-3-small', maxRetries: 0 });
   const chunkTexts       = chunks.map((c) => c.content);
   const chunkVectors     = await embeddingsClient.embedDocuments(chunkTexts);
 
@@ -133,9 +133,9 @@ const extractContextViaRAG = async (resumeText, jobDescription) => {
 
     return retrievedContext;
   } catch (error) {
-    console.error('RAG Pipeline Error:', error);
+    console.warn(`[RAG Pipeline] Vector embeddings unavailable (${error.message || 'quota/billing issue'}). Falling back to raw context.`);
     // Graceful fallback if OpenAI key is missing or embedding fails
-    return `Fallback Context:\nJD: ${(jobDescription || '').slice(0, 1000)}\nResume: ${(resumeText || '').slice(0, 1000)}`;
+    return `Fallback Context:\nJD: ${(jobDescription || '').slice(0, 4000)}\nResume: ${(resumeText || '').slice(0, 4000)}`;
   }
 };
 
