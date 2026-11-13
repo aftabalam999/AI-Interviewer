@@ -1,317 +1,364 @@
-# 🤖 AI Interviewer
+# AI Interviewer
 
 <div align="center">
 
-![AI Interviewer Banner](https://img.shields.io/badge/AI-Interviewer-6C63FF?style=for-the-badge&logo=robot&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
-![Socket.io](https://img.shields.io/badge/Socket.io-black?style=for-the-badge&logo=socket.io&badgeColor=010101)
+![AI Interviewer](https://img.shields.io/badge/AI-Interviewer-6C63FF?style=for-the-badge&logo=robot&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-43853D?style=for-the-badge&logo=node.js&logoColor=white)
+![React](https://img.shields.io/badge/React-18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![Socket.IO](https://img.shields.io/badge/Socket.IO-Realtime-010101?style=for-the-badge&logo=socket.io&logoColor=white)
 
-**An Intelligent AI-Powered Interview Platform — Parse Resume, Generate Questions, Evaluate in Real-time.**
+**Practice smarter. Interview with confidence.**
 
-[Demo](#) · [Report Bug](#) · [Request Feature](#)
+An AI-powered mock interview platform that turns a resume and job description into a personalized, real-time interview experience with actionable feedback.
 
 </div>
 
 ---
 
-## 📖 About the Project
+## Overview
 
-**AI Interviewer** is a full-stack web application that conducts AI-powered mock interviews for candidates. This platform:
+AI Interviewer is a full-stack application for candidates who want to prepare for interviews with realistic, AI-guided practice. Candidates can upload resumes, create role-specific interviews, answer generated questions, receive per-answer evaluation, and review their performance over time.
 
-- Uploads and parses your **Resume (PDF)**
-- Generates **intelligent interview questions** based on Job Description and Topics (via RAG pipeline)
-- Asks **real-time follow-up questions** (through Socket.io streaming)
-- Evaluates every answer with AI and provides a **detailed feedback report**
+The project also includes a separate administrator console for managing users, interview data, resumes, prompts, templates, subscription plans, payments, analytics, platform settings, and audit logs.
 
----
+## What it can do
 
-## ✨ Key Features
+### Candidate experience
 
-| Feature | Description |
-|---|---|
-| 📄 **Resume Parsing** | PDF upload → Text extraction → Semantic chunking |
-| 🧠 **RAG Pipeline** | LangChain + OpenAI Embeddings → Context-aware question generation |
-| 💬 **Real-time Interview** | Live follow-up questions via Socket.io streaming |
-| 📊 **AI Evaluation** | Score and feedback for each answer using Groq LLM |
-| 📈 **Dashboard** | Interview history, scores, and performance analytics |
-| 🔐 **Auth System** | JWT-based secure authentication |
-| ☁️ **Cloud Storage** | Resume files stored on Cloudinary |
-| ⚡ **Redis Cache** | For fast job search results and API responses |
+- Register and sign in with email/password or Google OAuth
+- Upload and manage resumes
+- Parse resume content with AI
+- Create interviews from a job title, job description, experience level, question types, question count, and optional resume
+- Generate technical, behavioral, situational, HR, and culture-fit questions
+- Run an interview session with real-time Socket.IO follow-up responses
+- Submit answers for AI scoring and feedback
+- Review strengths, weaknesses, recommendations, scores, interview history, and session results
+- Update profile information and view account details
 
----
+> Password changes are not shown in the user dashboard. The backend password-change endpoint remains available for existing API clients.
 
-## 🛠️ Tech Stack
+### Administrator console
+
+- Admin authentication with separate admin tokens and role/permission checks
+- Dashboard statistics
+- User management and bulk user actions
+- Interview, session, and resume administration
+- Interview template management
+- System prompt editing and version restoration
+- Subscription plan management
+- Transaction, refund, and webhook-log views
+- Platform settings
+- Analytics and audit logs
+- Admin ATS screen and operational views
+
+## How the AI pipeline works
+
+```text
+Resume upload
+    ↓
+PDF text extraction and AI parsing
+    ↓
+Semantic chunking
+    ↓
+OpenAI embeddings and contextual retrieval
+    ↓
+Interview creation from role and job description
+    ↓
+Groq question generation
+    ↓
+Real-time interview session over Socket.IO
+    ↓
+Groq answer evaluation and follow-up responses
+    ↓
+Scores, strengths, weaknesses, and recommendations
+```
+
+The retrieval layer uses LangChain text splitters and OpenAI embeddings. The current vector store is in-memory rather than a durable vector database.
+
+## Technology
 
 ### Backend
-- **Runtime**: Node.js + Express.js
-- **Database**: MongoDB (Mongoose)
-- **AI / LLM**: Groq SDK, LangChain, OpenAI Embeddings
-- **Real-time**: Socket.io
-- **File Storage**: Cloudinary + Multer
-- **Cache**: Redis (ioredis)
-- **Auth**: JWT (jsonwebtoken + bcryptjs)
-- **Security**: Helmet, CORS, express-rate-limit
-- **Logging**: Winston + Morgan
+
+- Node.js 18+ and Express
+- MongoDB with Mongoose
+- Groq SDK for parsing, question generation, evaluation, and follow-ups
+- LangChain and OpenAI embeddings for RAG
+- Socket.IO for real-time interview interactions
+- Cloudinary and Multer for file uploads
+- JWT, bcryptjs, Google OAuth, Helmet, CORS, and rate limiting
+- Redis/ioredis support
+- Winston and Morgan logging
 
 ### Frontend
-- **Framework**: React 18 + Vite
-- **State Management**: Zustand + TanStack React Query
-- **Routing**: React Router v6
-- **UI / Animations**: Framer Motion, Lucide React, React Icons
-- **Styling**: Tailwind CSS
-- **Forms**: React Hook Form
-- **Charts**: Recharts
-- **Notifications**: React Hot Toast
-- **Real-time**: Socket.io Client
-- **Markdown**: React Markdown
 
----
+- React 18 and Vite
+- React Router
+- Zustand and TanStack React Query
+- Axios
+- Tailwind CSS
+- Framer Motion
+- React Hook Form
+- Recharts
+- Lucide React and React Icons
+- Socket.IO client
+- React Markdown
 
-## 📁 Project Structure
+## Repository structure
 
-```
+```text
 AI-Interviewer/
 ├── backend/
-│   └── src/
-│       ├── server.js          # Entry point — HTTP + WebSocket server
-│       ├── app.js             # Express config — middleware, routes
-│       ├── socket.js          # Real-time follow-up Q&A logic
-│       ├── config/            # DB, Cloudinary, Groq, Logger
-│       ├── controllers/       # Route handlers
-│       │   ├── auth.controller.js
-│       │   ├── resume.controller.js
-│       │   ├── interview.controller.js
-│       │   ├── session.controller.js
-│       │   └── user.controller.js
-│       ├── services/          # Business logic & AI integrations
-│       │   ├── ai.service.js       # LLM orchestration
-│       │   ├── rag.service.js      # RAG pipeline
-│       │   ├── chunking.service.js # Semantic document splitting
-│       │   └── optimizer.service.js
-│       ├── models/            # Mongoose schemas
-│       │   ├── User.model.js
-│       │   ├── Resume.model.js
-│       │   ├── Interview.model.js
-│       │   └── Session.model.js
-│       ├── routes/            # API route definitions
-│       ├── middleware/        # Auth, validation, error handling
-│       └── utils/             # Helpers — AppError, JWT, normalizer
-│
-└── frontend/
-    └── src/
-        ├── App.jsx
-        ├── main.jsx
-        ├── pages/             # LandingPage, Dashboard, Interview, Jobs, etc.
-        ├── components/        # Reusable UI components
-        ├── context/           # React context providers
-        ├── hooks/             # Custom React hooks
-        ├── services/          # API call functions (axios)
-        ├── store/             # Zustand state stores
-        └── utils/             # Helper utilities
+│   ├── src/
+│   │   ├── app.js                 Express app, middleware, and API routes
+│   │   ├── server.js              HTTP and Socket.IO bootstrap
+│   │   ├── socket.js              Real-time interview events
+│   │   ├── config/                Database, AI, storage, cache, and logging
+│   │   ├── controllers/           User and admin request handlers
+│   │   ├── middleware/            Auth, validation, uploads, errors, logging
+│   │   ├── models/                MongoDB schemas
+│   │   ├── routes/                User and admin route definitions
+│   │   ├── services/              AI, RAG, chunking, and optimization
+│   │   └── utils/                 Errors, JWT helpers, and utilities
+│   └── package.json
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx                Route tree and route guards
+│   │   ├── components/            Candidate and admin UI components
+│   │   ├── context/               Application and admin context
+│   │   ├── hooks/                 Reusable React hooks
+│   │   ├── layouts/               Auth, dashboard, and admin shells
+│   │   ├── pages/                 Candidate and admin screens
+│   │   ├── services/              API clients
+│   │   └── store/                 Zustand authentication store
+│   └── package.json
+├── package.json                   Root development scripts
+├── PROJECT_DOCUMENTATION.md       Extended implementation notes
+├── SECURITY.md                    Security guidance
+└── CONTRIBUTING.md                Contribution guidelines
 ```
 
----
+## Requirements
 
-## 🚀 Getting Started
+- Node.js 18 or newer
+- MongoDB, local or hosted
+- Groq API key
+- OpenAI API key for embeddings and RAG
+- Cloudinary account for resume storage
+- Redis when Redis-backed features are enabled
+- Google OAuth credentials for Google sign-in
 
-### Prerequisites
+## Quick start
 
-The following must be installed before proceeding:
+### 1. Install dependencies
 
-- [Node.js](https://nodejs.org/) v18+
-- [MongoDB Atlas](https://www.mongodb.com/atlas) account (or local MongoDB)
-- [Redis](https://redis.io/) (local or cloud — Upstash/Redis Cloud)
-- [Groq API Key](https://console.groq.com) — Free
-- [OpenAI API Key](https://platform.openai.com) — For Embeddings
-- [Cloudinary Account](https://cloudinary.com) — For File Storage
-
----
-
-### ⚙️ Installation
-
-**1. Clone the Repository**
+From the repository root:
 
 ```bash
-git clone https://github.com/your-username/AI-Interviewer.git
-cd AI-Interviewer
-```
-
-**2. Backend Setup**
-
-```bash
-cd backend
 npm install
+npm run install:all
 ```
 
-Create `backend/.env` file (by copying `.env.example`):
+### 2. Configure the backend
 
 ```bash
-cp .env.example .env
+cp backend/.env.example backend/.env
 ```
 
-Fill in your values in `.env` (see below 👇)
+Fill in the required values in `backend/.env`.
 
-**3. Frontend Setup**
+### 3. Configure the frontend
 
 ```bash
-cd ../frontend
-npm install
+cp frontend/.env.example frontend/.env
 ```
 
-Create `frontend/.env` file:
+Set the frontend API URL if it differs from the local default.
+
+### 4. Start both applications
 
 ```bash
-cp .env.example .env
-```
-
----
-
-### 🔑 Environment Variables
-
-#### `backend/.env`
-
-```env
-# Server
-PORT=5000
-NODE_ENV=development
-
-# MongoDB
-MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/ai_interview_db
-
-# JWT
-JWT_SECRET=your_super_secret_jwt_key_min_32_chars
-JWT_EXPIRE=7d
-JWT_REFRESH_SECRET=your_refresh_token_secret_min_32_chars
-JWT_REFRESH_EXPIRE=30d
-
-# Groq AI (Free LLM)
-GROQ_API_KEY=your_groq_api_key_here
-
-# OpenAI (For Embeddings)
-OPENAI_API_KEY=your_openai_api_key_here
-
-# Cloudinary (File Storage)
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-
-# Frontend URL (CORS)
-CLIENT_URL=http://localhost:5173
-
-# Redis
-REDIS_ENABLED=true
-REDIS_HOST=127.0.0.1
-REDIS_PORT=6379
-
-```
-
-#### `frontend/.env`
-
-```env
-VITE_API_URL=http://localhost:5000
-```
-
----
-
-### ▶️ Run the Application
-
-**Backend (Terminal 1):**
-
-```bash
-cd backend
 npm run dev
 ```
 
-Backend will start at `http://localhost:5000`.
+The default development URLs are:
 
-**Frontend (Terminal 2):**
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:5000`
+- Health check: `http://localhost:5000/api/health`
+
+You can also run each application separately:
 
 ```bash
-cd frontend
-npm run dev
+npm run dev:backend
+npm run dev:frontend
 ```
 
-Frontend will open at `http://localhost:5173`.
+## Environment variables
 
----
+### Backend
 
-## 🔌 API Endpoints
+The complete template is in [`backend/.env.example`](backend/.env.example).
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/auth/register` | Register a new user |
-| `POST` | `/api/auth/login` | Login and get JWT token |
-| `POST` | `/api/resumes/upload` | Upload Resume PDF |
-| `GET`  | `/api/resumes` | View all resumes |
-| `POST` | `/api/interviews` | Create a new interview |
-| `GET`  | `/api/interviews/:id` | Interview details |
-| `POST` | `/api/sessions` | Start an interview session |
-| `POST` | `/api/sessions/:id/answer` | Submit and evaluate answer |
-| `GET`  | `/api/sessions/:id/report` | Final feedback report |
-| `GET`  | `/api/users/dashboard` | Dashboard stats |
+| Variable | Required | Purpose |
+|---|---:|---|
+| `PORT` | No | API port, default `5000` |
+| `NODE_ENV` | No | Runtime mode |
+| `MONGO_URI` | Yes | MongoDB connection string |
+| `JWT_SECRET` | Yes | Access-token signing secret |
+| `JWT_EXPIRE` | No | Access-token lifetime |
+| `JWT_REFRESH_SECRET` | Yes | Refresh-token signing secret |
+| `JWT_REFRESH_EXPIRE` | No | Refresh-token lifetime |
+| `GROQ_API_KEY` | Yes | Groq AI requests |
+| `OPENAI_API_KEY` | Yes | Embeddings and RAG |
+| `CLOUDINARY_CLOUD_NAME` | Yes | Cloudinary upload configuration |
+| `CLOUDINARY_API_KEY` | Yes | Cloudinary upload configuration |
+| `CLOUDINARY_API_SECRET` | Yes | Cloudinary upload configuration |
+| `CLIENT_URL` | No | Allowed frontend origin |
+| `GOOGLE_CLIENT_ID` | OAuth only | Google sign-in |
+| `GOOGLE_CLIENT_SECRET` | OAuth only | Google sign-in |
+| `GOOGLE_REDIRECT_URI` | OAuth only | Google callback URL |
+| `RATE_LIMIT_WINDOW_MS` | No | Rate-limit window |
+| `RATE_LIMIT_MAX` | No | Requests allowed per window |
+| `REDIS_ENABLED` | No | Enable Redis support |
+| `REDIS_URL` | No | Redis connection URL |
+| `REDIS_HOST` / `REDIS_PORT` | No | Redis host configuration |
+| `GROQ_MODEL` | No | Groq model override |
 
----
+Compression settings are also supported through `COMPRESSION_THRESHOLD_BYTES` and `COMPRESSION_LEVEL`.
 
-## 🧠 AI Flow — How It Works
+### Frontend
 
-```
-Resume PDF Upload
-       ↓
-Text Extraction (pdf-parse)
-       ↓
-Semantic Chunking (LangChain TextSplitters)
-       ↓
-Vector Embeddings (OpenAI)
-       ↓
-Save to Vector Store
-       ↓
-Create Interview (Job Role + Topics)
-       ↓
-Query Optimization (optimizer.service.js)
-       ↓
-RAG Retrieval — fetch relevant resume chunks
-       ↓
-Question Generation (Groq LLM)
-       ↓
-Real-time Interview (Socket.io)
-       ↓
-Answer Evaluation (Groq LLM)
-       ↓
-Generate Final Report
-```
+The frontend template is in [`frontend/.env.example`](frontend/.env.example).
 
----
+| Variable | Purpose |
+|---|---|
+| `VITE_API_URL` | Backend API base URL |
+| `VITE_APP_NAME` | Optional application name |
 
-## 🤝 Contributing
+## API surface
 
-Contributions are welcome! Please follow these steps:
+All API routes are prefixed with `/api`.
 
-1. **Fork** the repository
-2. Create your feature branch: `git checkout -b feature/AmazingFeature`
-3. Commit your changes: `git commit -m 'Add some AmazingFeature'`
-4. Push the branch: `git push origin feature/AmazingFeature`
-5. Open a **Pull Request**
+### Public and authentication
 
----
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/health` | Health check |
+| `POST` | `/auth/register` | Register a candidate |
+| `POST` | `/auth/login` | Candidate login |
+| `GET` | `/auth/google` | Start Google OAuth |
+| `GET` | `/auth/google/callback` | Google OAuth callback |
+| `POST` | `/auth/refresh` | Refresh a candidate token |
+| `GET` | `/auth/me` | Current candidate |
+| `POST` | `/auth/logout` | Candidate logout |
 
-## 📄 License
+### Candidate APIs
 
-This project is under the [MIT License](LICENSE).
+| Area | Endpoints |
+|---|---|
+| Users | `GET /users/profile`, `PUT /users/profile`, `PUT /users/change-password`, `GET /users/dashboard` |
+| Resumes | `POST /resumes/upload`, `GET /resumes`, `DELETE /resumes/:id`, `PATCH /resumes/:id/default`, `POST /resumes/:id/parse` |
+| Interviews | `GET /interviews`, `POST /interviews`, `GET /interviews/:id`, `POST /interviews/:id/generate`, `DELETE /interviews/:id` |
+| Sessions | `GET /sessions`, `POST /sessions/start`, `GET /sessions/:id`, `POST /sessions/:id/answer`, `POST /sessions/:id/complete` |
 
----
+`POST /resumes/chunk-preview` is a development/debug endpoint for inspecting chunking output.
 
-## 👨‍💻 Author
+### Admin APIs
 
-**Aftab Alam** — AI Project
+Admin routes are prefixed with `/api/admin` and use separate admin authentication:
+
+- `/admin/auth/*` — admin login, logout, refresh, and current-admin lookup
+- `/admin/stats`
+- `/admin/users`
+- `/admin/interviews`
+- `/admin/sessions`
+- `/admin/resumes`
+- `/admin/templates`
+- `/admin/prompts`
+- `/admin/plans`
+- `/admin/payments`
+- `/admin/settings`
+- `/admin/analytics/stats`
+- `/admin/logs`
+
+Individual write and destructive operations are protected by admin permissions; deleting users requires a super-admin role.
+
+## Frontend routes
+
+### Candidate routes
+
+`/`, `/login`, `/register`, `/auth/callback`, `/dashboard`, `/interviews`, `/interviews/new`, `/interviews/:id/session`, `/sessions`, `/sessions/:id/results`, `/resumes`, `/profile`
+
+### Admin routes
+
+`/admin/login`, `/admin`, `/admin/users`, `/admin/interviews`, `/admin/resumes`, `/admin/sessions`, `/admin/ats`, `/admin/subscription`, `/admin/payments`, `/admin/analytics`, `/admin/settings`, `/admin/prompts`, `/admin/logs`
+
+## Available scripts
+
+### Root
+
+| Command | Description |
+|---|---|
+| `npm run install:all` | Install backend and frontend dependencies |
+| `npm run dev` | Run backend and frontend together |
+| `npm run dev:backend` | Run backend with Nodemon |
+| `npm run dev:frontend` | Run Vite development server |
+| `npm start` | Start the backend |
+
+### Backend
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start with Nodemon |
+| `npm start` | Start production server |
+| `npm run build` | Backend no-op build check |
+| `npm test` | Run Jest |
+
+### Frontend
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start Vite |
+| `npm run build` | Create a production bundle |
+| `npm run preview` | Preview the production bundle |
+| `npm run lint` | Run ESLint |
+
+## Current limitations and production notes
+
+- Resume uploads allow PDF, DOC, and DOCX containers, but the implemented text extraction path is PDF-focused.
+- Uploads are limited to 5 MB.
+- Job descriptions must contain at least 50 characters.
+- Interviews support between 3 and 20 questions.
+- RAG embeddings are held in memory and are not persisted to a vector database.
+- If embedding generation is unavailable, the RAG service can fall back to raw resume/job-description context.
+- The chunk-preview route is intended for development diagnostics and should be restricted or removed before production.
+- The admin payment area currently exposes administrative payment views and mock/fallback data rather than a complete payment processor integration.
+- Socket.IO event authorization should be reviewed before exposing live interview sessions to untrusted clients.
+- Review [`backend/src/scripts/seedAdmin.js`](backend/src/scripts/seedAdmin.js) before use and replace any default administrative credentials.
+
+## Security
+
+Never commit `.env` files, API keys, OAuth secrets, database credentials, or JWT secrets. Use strong, unique secrets in each environment and review [`SECURITY.md`](SECURITY.md) before deployment.
+
+## Contributing
+
+1. Fork the repository.
+2. Create a branch: `git checkout -b feature/your-feature`.
+3. Make and test your changes.
+4. Commit with a clear message.
+5. Push your branch and open a pull request.
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for repository contribution guidance.
+
+## License
+
+This project is released under the [MIT License](LICENSE).
 
 ---
 
 <div align="center">
 
-Made with ❤️ using **Groq**, **React**, and **MongoDB**
-
-⭐ If you find this project helpful, please give it a Star!
+Built with Groq, React, MongoDB, and a lot of interview practice.
 
 </div>
