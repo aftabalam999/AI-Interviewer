@@ -79,8 +79,6 @@ exports.saveSettings = async (req, res) => {
     if (security.apiKeys) {
       if (security.apiKeys.groq !== undefined)      settings.security.apiKeys.groq      = security.apiKeys.groq;
       if (security.apiKeys.stripe !== undefined)    settings.security.apiKeys.groq      = security.apiKeys.stripe;
-      if (security.apiKeys.adzunaId !== undefined)  settings.security.apiKeys.adzunaId  = security.apiKeys.adzunaId;
-      if (security.apiKeys.adzunaKey !== undefined) settings.security.apiKeys.adzunaKey = security.apiKeys.adzunaKey;
     }
     if (security.rateLimits) {
       if (security.rateLimits.windowMs !== undefined)    settings.security.rateLimits.windowMs    = security.rateLimits.windowMs;

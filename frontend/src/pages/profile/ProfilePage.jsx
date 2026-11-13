@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
-import { User, Mail, Lock, Save, Loader2, CheckCircle } from 'lucide-react';
+import { User, Mail, Save, Loader2 } from 'lucide-react';
 import { userAPI } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
@@ -9,17 +9,10 @@ import toast from 'react-hot-toast';
 export default function ProfilePage() {
   const { user, updateUser } = useAuthStore();
   const [saving, setSaving] = useState(false);
-  const [savingPwd, setSavingPwd] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     defaultValues: { name: user?.name || '', email: user?.email || '' },
   });
-
-  const {
-    register: regPwd, handleSubmit: handlePwd, watch: watchPwd,
-    reset: resetPwd, formState: { errors: pwdErrors }
-  } = useForm();
-  const newPassword = watchPwd('newPassword');
 
   const onProfileSave = async (data) => {
     setSaving(true);
@@ -31,22 +24,6 @@ export default function ProfilePage() {
       toast.error(err.response?.data?.message || 'Update failed');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const onPasswordSave = async (data) => {
-    setSavingPwd(true);
-    try {
-      await userAPI.changePassword({
-        currentPassword: data.currentPassword,
-        newPassword: data.newPassword,
-      });
-      toast.success('Password changed successfully!');
-      resetPwd();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Password change failed');
-    } finally {
-      setSavingPwd(false);
     }
   };
 
@@ -90,50 +67,6 @@ export default function ProfilePage() {
             <button type="submit" disabled={saving} className="btn-primary">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
-      </motion.div>
-
-      {/* Password Form */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card p-6">
-        <h3 className="font-semibold text-white mb-5 flex items-center gap-2">
-          <Lock className="w-5 h-5 text-brand-400" /> Change Password
-        </h3>
-
-        <form onSubmit={handlePwd(onPasswordSave)} className="space-y-4">
-          <div>
-            <label className="form-label">Current Password</label>
-            <input type="password" className="form-input"
-              {...regPwd('currentPassword', { required: 'Current password is required' })} />
-            {pwdErrors.currentPassword && <p className="form-error">{pwdErrors.currentPassword.message}</p>}
-          </div>
-          <div>
-            <label className="form-label">New Password</label>
-            <input type="password" className="form-input"
-              {...regPwd('newPassword', {
-                required: 'New password is required',
-                minLength: { value: 8, message: 'Min 8 characters' },
-                pattern: {
-                  value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-                  message: 'Must include uppercase, lowercase, and number',
-                },
-              })} />
-            {pwdErrors.newPassword && <p className="form-error">{pwdErrors.newPassword.message}</p>}
-          </div>
-          <div>
-            <label className="form-label">Confirm New Password</label>
-            <input type="password" className="form-input"
-              {...regPwd('confirmPassword', {
-                required: 'Please confirm password',
-                validate: (v) => v === newPassword || 'Passwords do not match',
-              })} />
-            {pwdErrors.confirmPassword && <p className="form-error">{pwdErrors.confirmPassword.message}</p>}
-          </div>
-          <div className="flex justify-end">
-            <button type="submit" disabled={savingPwd} className="btn-primary">
-              {savingPwd ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-              {savingPwd ? 'Updating...' : 'Update Password'}
             </button>
           </div>
         </form>

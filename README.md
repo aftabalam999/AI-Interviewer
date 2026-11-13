@@ -24,7 +24,6 @@
 - Generates **intelligent interview questions** based on Job Description and Topics (via RAG pipeline)
 - Asks **real-time follow-up questions** (through Socket.io streaming)
 - Evaluates every answer with AI and provides a **detailed feedback report**
-- Shows relevant jobs via the **Job Board** feature
 
 ---
 
@@ -37,7 +36,6 @@
 | 💬 **Real-time Interview** | Live follow-up questions via Socket.io streaming |
 | 📊 **AI Evaluation** | Score and feedback for each answer using Groq LLM |
 | 📈 **Dashboard** | Interview history, scores, and performance analytics |
-| 💼 **Job Board** | Live job listings from Adzuna API |
 | 🔐 **Auth System** | JWT-based secure authentication |
 | ☁️ **Cloud Storage** | Resume files stored on Cloudinary |
 | ⚡ **Redis Cache** | For fast job search results and API responses |
@@ -56,7 +54,6 @@
 - **Auth**: JWT (jsonwebtoken + bcryptjs)
 - **Security**: Helmet, CORS, express-rate-limit
 - **Logging**: Winston + Morgan
-- **Job Search API**: Adzuna
 
 ### Frontend
 - **Framework**: React 18 + Vite
@@ -129,7 +126,6 @@ The following must be installed before proceeding:
 - [Groq API Key](https://console.groq.com) — Free
 - [OpenAI API Key](https://platform.openai.com) — For Embeddings
 - [Cloudinary Account](https://cloudinary.com) — For File Storage
-- [Adzuna API](https://developer.adzuna.com/) — For Job Search (optional)
 
 ---
 
@@ -209,10 +205,6 @@ REDIS_ENABLED=true
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 
-# Adzuna Job Search (Optional)
-ADZUNA_APP_ID=your_app_id
-ADZUNA_APP_KEY=your_app_key
-ADZUNA_COUNTRY=in
 ```
 
 #### `frontend/.env`
