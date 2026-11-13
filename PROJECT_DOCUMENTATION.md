@@ -24,7 +24,6 @@ The root `package.json` provides commands for installing and running both applic
 - Cloudinary and Multer for resume file storage and uploads
 - Redis for caching and optional service support
 - PostgreSQL client for an alternative job data source
-- Adzuna for external job search and synchronization
 - Helmet, CORS, rate limiting, compression, Morgan, and Winston for HTTP security and operations
 - Jest and Nodemon for testing and development
 
@@ -96,7 +95,6 @@ AI-Interviewer/
 - OpenAI API access for embeddings
 - Cloudinary account for resume storage
 - Redis if caching and background job services are enabled
-- Adzuna credentials for external job search and synchronization
 - PostgreSQL only if the PostgreSQL job source is used
 
 ### Install
@@ -131,7 +129,7 @@ CLOUDINARY_API_SECRET=replace-with-api-secret
 CLIENT_URL=http://localhost:5173
 ```
 
-Optional or feature-specific variables include `REDIS_ENABLED`, `REDIS_URL` or Redis host/port settings, `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`, `ADZUNA_COUNTRY`, `DATABASE_URL` or PostgreSQL connection variables, compression settings, Adzuna timeout/retry settings, and job cache settings. The code reads these in `backend/src/config/redis.js`, `backend/src/services/postgresJobService.js`, and `backend/src/utils/adzunaClient.js`.
+Optional or feature-specific variables include `REDIS_ENABLED`, `REDIS_URL` or Redis host/port settings, `DATABASE_URL` or PostgreSQL connection variables, and compression settings.
 
 Typical frontend configuration:
 
@@ -240,14 +238,10 @@ The main Mongoose models are:
 - `rag.service.js`: Creates embeddings, retrieves relevant chunks, and supplies context to generation.
 - `optimizer.service.js`: Improves search or interview queries before AI retrieval.
 - `jobSearchService.js`, `jobMatchService.js`, and `jobNormalizer.js`: Search, recommendation, normalization, and matching behavior.
-- `adzuna.service.js` and `adzunaService.js`: Adzuna live search and scheduled synchronization paths.
-- `jobSyncService.js` and `jobSyncScheduler.js`: Fetch and schedule job synchronization.
-- `jobCleanupService.js`: Deactivates old jobs.
-- `postgresJobService.js`: PostgreSQL-backed job access with fallback behavior.
 
 #### `utils/`
 
-Provides application errors, Adzuna clients and caching, deduplication, normalization, and other shared helpers.
+Provides application errors, caching, normalization, and other shared helpers.
 
 ## 6. Candidate User Flow
 
@@ -262,17 +256,6 @@ Provides application errors, Adzuna clients and caching, deduplication, normaliz
 9. During live interaction, Socket.io streams a conversational follow-up from Groq.
 
 The important backend files are `resume.controller.js`, `interview.controller.js`, `session.controller.js`, `ai.service.js`, `rag.service.js`, and `socket.js`.
-
-## 7. Job System
-
-The project currently has more than one job path:
-
-1. **Live Adzuna search** uses `/api/jobs/search`, query optimization, Adzuna requests, normalization, deduplication, scoring, Redis caching, retries, circuit-breaker behavior, pagination, and stale-result fallback.
-2. **Database-backed listings** use `/api/jobs`, attempt PostgreSQL where configured, and fall back to MongoDB `Job` data. The active frontend `useJobs` hook uses this path.
-3. **Scheduled synchronization** uses the older Adzuna service through the job sync scheduler. It runs periodically and stores locally available listings.
-4. **Recommendations** compare parsed resume skills with job requirements through `jobMatchService.js`.
-
-Background schedules are started by `server.js`: developer-job synchronization runs every three hours, and old-job cleanup runs daily. Exact intervals and feature flags are defined in the scheduler services and environment configuration.
 
 ## 8. Frontend Architecture
 
@@ -330,12 +313,11 @@ The current RAG implementation uses OpenAI `text-embedding-3-small`, cosine simi
 
 ## 11. Operations and Security Notes
 
-- Keep JWT, database, AI, Cloudinary, Redis, Adzuna, and PostgreSQL credentials outside source control.
+- Keep JWT, database, AI, Cloudinary, Redis, and PostgreSQL credentials outside source control.
 - Use strong, separate JWT secrets for access and refresh tokens.
 - Confirm `CLIENT_URL` and the frontend API URL match the deployment topology.
 - Rate limiting is applied to `/api/`; its window and maximum can be configured with `RATE_LIMIT_WINDOW_MS` and `RATE_LIMIT_MAX`.
 - MongoDB connection errors are logged by the current implementation; the server may continue starting and fail later requests.
-- `server.js` currently logs Adzuna credential identifiers at startup. Remove that logging before production deployment.
 - Review `backend/src/scripts/seedAdmin.js` before use because it contains administrative account setup behavior and a hard-coded password pattern.
 - Validate and authorize Socket.io events if live interview sessions are exposed beyond a trusted client.
 
@@ -345,9 +327,6 @@ The existing README and older backend notes describe parts of an earlier design.
 
 - Current code includes both `redis` and `ioredis` dependencies and a Redis compatibility layer; the README only describes ioredis.
 - The RAG vector store is currently in memory, not a persisted vector database.
-- There are two Adzuna service filenames with different responsibilities.
-- Job data can come from Adzuna, MongoDB, or PostgreSQL, so schemas and behavior vary by path.
-- The active frontend job hook uses `/api/jobs`, while the advanced live search pipeline is `/api/jobs/search`.
 - The admin payment area contains Stripe-oriented UI concepts, but no clear Stripe dependency or complete Stripe integration is present in the backend.
 - The admin ATS screen is currently a placeholder.
 - `frontend/src/context/AuthContext.jsx` overlaps with the Zustand auth flow but is not mounted by the current application bootstrap.
